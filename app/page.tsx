@@ -3,10 +3,7 @@
 import { useState, useEffect } from 'react';
 import CandidateDashboard from './CandidateDashboard';
 import EmployerDashboard from './EmployerDashboard';
-// Dynamic API Base URL based on runtime hostname (No build-time caching issues!)
-  const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : 'https://ai-job-board-backend-izko.onrender.com';
+
 export default function Home() {
   const [user, setUser] = useState<{ email: string; isGuest: boolean } | null>(null);
   const [portalMode, setPortalMode] = useState<'candidate' | 'employer'>('candidate');
@@ -39,8 +36,10 @@ export default function Home() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [sendingReset, setSendingReset] = useState(false);
 
-  // Dynamic API Base URL (Automatically switches between local and Render production)
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  // 🚀 ONLY ONE API_BASE HERE: Dynamic runtime check 🚀
+  const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : 'https://ai-job-board-backend-izko.onrender.com';
 
   // Dynamic Typewriter State
   const candidateKeywords = ["software", "product", "design", "data"];
@@ -158,7 +157,7 @@ export default function Home() {
     e.preventDefault();
     setSendingReset(true);
     
-    // Use API_BASE instead of hardcoded localhost
+    // Uses the one true API_BASE
     const endpoint = portalMode === 'employer' 
       ? `${API_BASE}/api/employer/forgot-password` 
       : `${API_BASE}/api/auth/forgot-password`;
