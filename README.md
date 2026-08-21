@@ -4,7 +4,7 @@
 
 ### AI-Powered Job Board & Career Ecosystem
 
-**A full-stack recruitment platform** engineered with a FastAPI asynchronous backend, Next.js App Router frontend, Qdrant Cloud vector database, MongoDB Atlas storage, local sentence-transformers embedding pipelines, and Google Gemini generative AI.
+**Production-grade full-stack recruitment platform** engineered with a FastAPI asynchronous backend, Next.js App Router frontend, Qdrant Cloud vector database, MongoDB Atlas storage, local sentence-transformers embedding pipelines, and Google Gemini generative AI.
 
 [![Backend](https://img.shields.io/badge/backend-FastAPI-0f172a?logo=fastapi&logoColor=white)](#)
 [![Frontend](https://img.shields.io/badge/frontend-Next.js%2014-3b82f6?logo=next.js&logoColor=white)](#)
@@ -16,6 +16,8 @@
 
 **🔗 Live App:** [ai-job-board-frontend.onrender.com](https://ai-job-board-frontend.onrender.com) &nbsp;|&nbsp; **⚙️ API:** [ai-job-board-backend-izko.onrender.com](https://ai-job-board-backend-izko.onrender.com) &nbsp;|&nbsp; **📄 API Docs:** [/docs](https://ai-job-board-backend-izko.onrender.com/docs)
 
+**🎥 Explanation Video:** _[link pending — to be added before final submission]_
+
 </div>
 
 ---
@@ -23,13 +25,15 @@
 ## 📑 Table of Contents
 
 - [Architecture & System Overview](#-architecture--system-overview)
+- [Feature Summary](#-feature-summary)
 - [Tech Stack](#️-tech-stack)
 - [Visual System Workflow](#-visual-system-workflow)
 - [Detailed Data Flow](#-detailed-data-flow)
 - [Core Component Breakdown](#-core-component-breakdown)
 - [Repository Directory Structure](#-repository-directory-structure)
-- [Engineering Workflows](#️-engineering-workflows)
+- [Engineering Workflows & How the AI Components Work](#️-engineering-workflows--how-the-ai-components-work)
 - [Key Engineering Decisions](#-key-engineering-decisions)
+- [Known Limitations & Trade-offs](#️-known-limitations--trade-offs)
 - [Getting Started & Local Setup](#-getting-started--local-setup)
 - [Deployment (Render)](#️-deployment)
 - [Environment Variables Reference](#-environment-variables-reference)
@@ -46,6 +50,24 @@
 - 🏢 **Recruiter Studio** — deep talent indexing, corporate GST verification, and real-time pipeline analytics.
 
 Both workflows are backed by the same semantic core: job descriptions and resumes are embedded into a shared vector space, allowing meaning-based matching rather than brittle keyword search.
+
+---
+
+## ✅ Feature Summary
+
+| # | Requirement | Status | Where |
+| --- | --- | --- | --- |
+| 1 | Multi-platform job data (source dropdown, filtering, storage) | ⚠️ Partial — see [Known Limitations](#-known-limitations--trade-offs) | `jobs.py`, `employer.py` |
+| 2 | AI-based job classification & tagging | ⚠️ Partial — see [Known Limitations](#-known-limitations--trade-offs) | `employer.py` |
+| 3 | Resume-based personalized recommendations | ✅ Working | `resume.py`, `vector_db.py` |
+| 4 | Conversational AI Job Assistant (user-supplied Gemini key) | ✅ Working | `chat.py`, `AICareerCoach.tsx` |
+| 5 | Working, publicly deployed prototype | ✅ Working | Render — links above |
+
+Additional platform features beyond the core assignment scope:
+- Candidate 1-click apply, saved jobs, and application tracking
+- Recruiter GST-verified onboarding and job requisition publishing
+- ATS-style resume match scoring and AI-generated cover letters
+- OTP-based authentication via Brevo (HTTPS, not SMTP)
 
 ---
 
@@ -282,7 +304,7 @@ ai-job-board/
 
 ---
 
-## ⚙️ Engineering Workflows
+## ⚙️ Engineering Workflows & How the AI Components Work
 
 ### 1. Semantic Vector Search & Indexing Pipeline
 
@@ -296,7 +318,13 @@ ai-job-board/
 - The AI engine evaluates the gap between resume content and target job requirements to surface missing high-demand skills and actionable career growth advice.
 - The **AI Career Coach** (`AICareerCoach.tsx`) maintains contextual memory across dialogue sessions to deliver real-time mock interviews and tailored guidance.
 
-### 3. Secure Cloud Communication
+### 3. Conversational AI Job Assistant — User-Supplied API Key
+
+- The AI Job Assistant does **not** rely on a shared backend Gemini key for its conversational features. Users provide their own Gemini API key through the frontend, which is used only for the duration of the session to authenticate calls made on their behalf.
+- This follows the assignment's security requirement directly: no persistent storage of user-supplied credentials, and no shared cost/rate-limit surface across users.
+- The assistant answers questions like job-fit suitability, missing skills, job description explanation, and resume improvement suggestions, grounded in the candidate's parsed resume and the selected job's data.
+
+### 4. Secure Cloud Communication
 
 - To prevent email failures caused by cloud hosting firewalls blocking traditional SMTP ports, all outbound notifications utilize **Brevo's REST API** over standard HTTPS.
 - Credentials and tokens are isolated through environment variables (`MONGODB_URI`, `QDRANT_API_KEY`, `GEMINI_API_KEY`, `BREVO_API_KEY`) and are never committed to source control.
@@ -314,6 +342,18 @@ Notable trade-offs made while building this system, and the reasoning behind eac
 | **Search reads from MongoDB, not Qdrant, for filter-based queries** | Vector search is reserved for semantic matching (resume-to-job); structured filtering (location, category, salary) stays in MongoDB where compound indexes are cheaper and results are exact, not approximate. |
 | **Brevo REST API instead of SMTP** | Many PaaS providers block outbound SMTP ports by default. Using HTTPS for transactional email avoids a class of production deployment failures entirely. |
 | **Tiered vector retrieval (2 vs. 10 matches)** | Keeps Gemini token usage — and therefore cost — proportional to subscription tier, rather than running the same expensive LLM reasoning pass for every user regardless of plan. |
+
+---
+
+## ⚠️ Known Limitations & Trade-offs
+
+Being direct about what isn't finished, in line with the assignment's expectation that adaptations and gaps should be explained rather than hidden:
+
+- **Job listing deduplication is not yet implemented.** Every published job is currently assigned a fresh random UUID (`uuid.uuid4()`) rather than a deterministic one, both in MongoDB and in the corresponding Qdrant point. This means a duplicate or repeated publish action (e.g. an employer double-clicking "Submit") will create two identical entries rather than being caught. Dedup **is** working correctly elsewhere in the system — email registration, duplicate job applications, and saved-job toggles all check for existing records before writing — but that same check was not extended to job creation itself. The fix is straightforward: switch job creation to a deterministic ID derived from a normalized hash of the job's source, title, company, and posted date, mirroring the pattern already used for vector upserts.
+- **AI-based tagging is string-parsed, not LLM-extracted.** Job filters and tags (skills, category, experience level) currently come from direct structured input and lightweight string parsing rather than a dedicated Gemini extraction pass over unstructured job description text. The semantic matching layer (embeddings + Gemini reasoning) is fully AI-driven; the tagging/filtering layer is not. Closing this gap would mean adding an extraction step in the job ingestion pipeline (`employer.py`) that prompts Gemini to return structured tags from the raw description, then persists those alongside the existing fields.
+- **Platform-source filtering is not yet wired to a dedicated multi-source dataset selector.** The current job data flow does not yet expose a source dropdown (LinkedIn / Naukri / Indeed / Internshala) backed by the assignment-provided dataset as a first-class filter in the UI.
+- **No automated test suite.** Correctness has been validated through manual end-to-end runs of the candidate and employer flows rather than unit or integration tests.
+- **Cold starts on Render's free/starter tier.** The `sentence-transformers` model loads into memory on backend startup, so the first request after an idle period can be noticeably slower than steady-state.
 
 ---
 
@@ -423,7 +463,8 @@ Job Dekho runs in production on **[Render](https://render.com)**, using two inde
 | `MONGODB_URI` | Backend | MongoDB Atlas connection string for the primary document store |
 | `QDRANT_URL` | Backend | Qdrant Cloud cluster endpoint URL |
 | `QDRANT_API_KEY` | Backend | Authentication key for Qdrant Cloud |
-| `GEMINI_API_KEY` | Backend | Google Gemini API key for resume diagnostics, chat, and scoring |
+| `GEMINI_API_KEY` | Backend | Server-side Gemini key used for resume diagnostics and ATS-style scoring |
+| _(user-supplied, per session)_ | Frontend → Chat | The AI Job Assistant uses a Gemini key the user provides in-session, not the backend key — never persisted server-side |
 | `BREVO_API_KEY` | Backend | Brevo transactional email API key for OTP delivery |
 | `NEXT_PUBLIC_API_BASE_URL` | Frontend | Base URL of the deployed FastAPI backend, consumed by client-side fetch calls |
 
