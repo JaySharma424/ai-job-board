@@ -36,6 +36,9 @@ export default function Home() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [sendingReset, setSendingReset] = useState(false);
 
+  // Dynamic API Base URL (Automatically switches between local and Render production)
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
   // Dynamic Typewriter State
   const candidateKeywords = ["software", "product", "design", "data"];
   const employerKeywords = ["engineers", "designers", "managers", "analysts"];
@@ -56,7 +59,7 @@ export default function Home() {
     // 1. CANDIDATE LOGIN
     if (portalMode === 'candidate' && isLogin) {
       try {
-        const res = await fetch('http://localhost:8000/api/auth/login', {
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -76,7 +79,7 @@ export default function Home() {
     // 2. EMPLOYER LOGIN (Sends OTP)
     if (portalMode === 'employer' && !isEmployerRegister) {
       try {
-        const res = await fetch('http://localhost:8000/api/employer/login', {
+        const res = await fetch(`${API_BASE}/api/employer/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -95,8 +98,8 @@ export default function Home() {
 
     // 3. CANDIDATE OR EMPLOYER REGISTRATION (Sends OTP)
     const endpoint = portalMode === 'employer' 
-      ? 'http://localhost:8000/api/employer/send-otp' 
-      : 'http://localhost:8000/api/auth/send-otp';
+      ? `${API_BASE}/api/employer/send-otp` 
+      : `${API_BASE}/api/auth/send-otp`;
 
     const bodyPayload = portalMode === 'employer' 
       ? { email, password, company_name: companyName, employer_name: employerName, gst_number: gstNumber, industry, phone, location }
@@ -125,8 +128,8 @@ export default function Home() {
     setIsVerifying(true);
 
     const endpoint = portalMode === 'employer' 
-      ? 'http://localhost:8000/api/employer/verify-otp' 
-      : 'http://localhost:8000/api/auth/verify-otp';
+      ? `${API_BASE}/api/employer/verify-otp` 
+      : `${API_BASE}/api/auth/verify-otp`;
 
     try {
       const res = await fetch(endpoint, {
@@ -151,7 +154,7 @@ export default function Home() {
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSendingReset(true);
-    const endpoint = portalMode === 'employer' ? 'http://localhost:8000/api/employer/forgot-password' : 'http://localhost:8000/api/auth/forgot-password';
+    const endpoint = portalMode === 'employer' ? `${API_BASE}/api/employer/forgot-password` : `${API_BASE}/api/auth/forgot-password`;
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -373,8 +376,14 @@ export default function Home() {
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between items-center ml-1 mr-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
-                  {!isEmployerRegister && portalMode === 'employer' && (
-                    <button type="button" onClick={() => setShowForgotModal(true)} className="text-[10px] font-bold text-amber-600 hover:text-amber-800 transition-colors">Forgot Password?</button>
+                  {!isEmployerRegister && (
+                    <button 
+                      type="button" 
+                      onClick={() => setShowForgotModal(true)} 
+                      className={`text-[10px] font-bold transition-colors ${portalMode === 'employer' ? 'text-amber-600 hover:text-amber-800' : 'text-blue-600 hover:text-blue-800'}`}
+                    >
+                      Forgot Password?
+                    </button>
                   )}
                 </div>
                 <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`w-full bg-white/80 border border-slate-200 p-4 rounded-2xl text-sm outline-none focus:ring-4 transition-all font-semibold shadow-sm ${portalMode === 'employer' ? 'focus:border-amber-500 focus:ring-amber-500/20' : 'focus:border-blue-600 focus:ring-blue-500/20'}`} />

@@ -1,6 +1,6 @@
-/** @type {import('next').Next.jsConfig} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone', // Required for Docker containerization
+  output: 'standalone',
 };
 
 module.exports = nextConfig;
