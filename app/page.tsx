@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import CandidateDashboard from './CandidateDashboard';
 import EmployerDashboard from './EmployerDashboard';
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export default function Home() {
   const [user, setUser] = useState<{ email: string; isGuest: boolean } | null>(null);
   const [portalMode, setPortalMode] = useState<'candidate' | 'employer'>('candidate');
@@ -154,7 +154,12 @@ export default function Home() {
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSendingReset(true);
-    const endpoint = portalMode === 'employer' ? `${API_BASE}/api/employer/forgot-password` : `${API_BASE}/api/auth/forgot-password`;
+    
+    // Use API_BASE instead of hardcoded localhost
+    const endpoint = portalMode === 'employer' 
+      ? `${API_BASE}/api/employer/forgot-password` 
+      : `${API_BASE}/api/auth/forgot-password`;
+      
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
