@@ -1,9 +1,7 @@
 import os
 import uuid
 import random
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from passlib.context import CryptContext
@@ -32,28 +30,34 @@ class ResetPasswordRequest(BaseModel):
     resetToken: str
     newPassword: str
 
-def send_email_via_gmail(to_email: str, subject: str, html_content: str):
-    sender_email = os.getenv("GMAIL_USER")
-    sender_password = os.getenv("GMAIL_APP_PASSWORD")
-
-    if not sender_email or not sender_password:
-        print("Gmail credentials missing in .env")
+def send_email_via_api(to_email: str, subject: str, html_content: str):
+    """Bypasses Render's blocked SMTP ports by using Resend's HTTPS API"""
+    api_key = os.getenv("RESEND_API_KEY")
+    
+    if not api_key:
+        print("❌ RESEND_API_KEY missing in environment variables")
         return
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"Job Dekho <{sender_email}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(html_content, "html"))
-
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "from": "Job Dekho <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_content
+    }
+    
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(sender_email, sender_password.replace(" ", ""))
-            server.sendmail(sender_email, to_email, msg.as_string())
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            print("✅ Email sent successfully via HTTP API!")
+        else:
+            print(f"❌ Failed to send email: {response.text}")
     except Exception as e:
-        print(f"❌ [SMTP ERROR] Failed to send email via Gmail TLS: {e}")
+        print(f"❌ Network Error: {e}")
 
 def send_otp_email(email: str, otp: str):
     html = f"""
@@ -66,7 +70,7 @@ def send_otp_email(email: str, otp: str):
         <p style="font-size: 12px; color: #94a3b8;">This code expires in 10 minutes.</p>
     </div>
     """
-    send_email_via_gmail(email, "Job Dekho Verification Code", html)
+    send_email_via_api(email, "Job Dekho Verification Code", html)
 
 @router.post("/send-otp")
 async def send_candidate_otp(data: AuthPayload, background_tasks: BackgroundTasks):
@@ -148,5 +152,5 @@ async def forgot_password(req: ForgotPasswordRequest, background_tasks: Backgrou
             <a href="{reset_url}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Your Password</a>
         </div>
     """
-    background_tasks.add_task(send_email_via_gmail, req.email, "Password Reset Request - Job Dekho", html)
+    background_tasks.add_task(send_email_via_api, req.email, "Password Reset Request - Job Dekho", html)
     return {"success": True, "message": "Password reset email successfully sent!"}

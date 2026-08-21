@@ -1,12 +1,10 @@
 import os
 import json
 import random
-import smtplib
 import uuid
 import re
+import requests
 from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any
@@ -103,26 +101,34 @@ def build_job_text(job: dict) -> str:
     Description: {desc}
     """.strip()
 
-# --- FREE GMAIL SENDER UTILITY ---
-def send_email_via_gmail(to_email: str, subject: str, html_content: str):
-    sender_email = os.getenv("GMAIL_USER")
-    sender_password = os.getenv("GMAIL_APP_PASSWORD")
-    if not sender_email or not sender_password:
-        print("❌ [SMTP ERROR] GMAIL_USER or GMAIL_APP_PASSWORD missing in backend/.env")
+# --- FREE HTTP API SENDER UTILITY ---
+def send_email_via_api(to_email: str, subject: str, html_content: str):
+    """Bypasses Render's blocked SMTP ports by using Resend's HTTPS API"""
+    api_key = os.getenv("RESEND_API_KEY")
+    if not api_key:
+        print("❌ [SMTP ERROR] RESEND_API_KEY missing in backend/.env")
         return
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"Job Dekho Recruiter <{sender_email}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(html_content, "html"))
+        
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "from": "Job Dekho Recruiter <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_content
+    }
+    
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(sender_email, sender_password.replace(" ", ""))
-            server.sendmail(sender_email, to_email, msg.as_string())
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            print("✅ Corporate Email sent successfully via HTTP API!")
+        else:
+            print(f"❌ Failed to send email: {response.text}")
     except Exception as e:
-        print(f"❌ [SMTP ERROR] Failed to send email via Gmail SSL: {e}")
+        print(f"❌ Network Error: {e}")
 
 def send_employer_otp_email(email: str, otp: str, is_login: bool = False):
     action_text = "Login Verification" if is_login else "Account Registration"
@@ -136,7 +142,7 @@ def send_employer_otp_email(email: str, otp: str, is_login: bool = False):
         <p style="font-size: 12px; color: #94a3b8;">This code expires in 10 minutes.</p>
     </div>
     """
-    send_email_via_gmail(email, f"Job Dekho Recruiter OTP - {action_text}", html)
+    send_email_via_api(email, f"Job Dekho Recruiter OTP - {action_text}", html)
 
 # ----------------------------------------------------
 # ENDPOINTS
@@ -188,7 +194,7 @@ async def save_employer_profile(data: dict):
 async def recruiter_forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     reset_code = "".join(random.choices("0123456789", k=6))
     html = f"<div style='font-family: Arial, sans-serif; text-align: center;'><h2 style='color: #2563eb;'>Recruiter Password Reset</h2><div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold;'>{reset_code}</div></div>"
-    background_tasks.add_task(send_email_via_gmail, data.email, "Recruiter Password Reset Code", html)
+    background_tasks.add_task(send_email_via_api, data.email, "Recruiter Password Reset Code", html)
     return {"success": True, "message": f"Instructions sent to {data.email}."}
 
 # ----------------------------------------------------
