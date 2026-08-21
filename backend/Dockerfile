@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose port (Render ignores the port number here, but it's good practice)
+# Expose port
 EXPOSE 8000
 
-# Dynamically bind to Render's assigned PORT (defaults to 8000 locally)
-CMD sh -c "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# Use shell form so Render's dynamic PORT environment variable is correctly used
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
