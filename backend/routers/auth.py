@@ -1,5 +1,4 @@
 import os
-import uuid
 import random
 import requests
 from datetime import datetime, timedelta
@@ -27,13 +26,12 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
-    resetToken: str
+    otp: str
     newPassword: str
 
 def send_email_via_api(to_email: str, subject: str, html_content: str):
     """Bypasses Render's blocked SMTP ports by using Resend's HTTPS API"""
     api_key = os.getenv("RESEND_API_KEY")
-    
     if not api_key:
         print("❌ RESEND_API_KEY missing in environment variables")
         return
@@ -59,18 +57,19 @@ def send_email_via_api(to_email: str, subject: str, html_content: str):
     except Exception as e:
         print(f"❌ Network Error: {e}")
 
-def send_otp_email(email: str, otp: str):
+def send_otp_email(email: str, otp: str, is_reset: bool = False):
+    action = "Password Reset" if is_reset else "Account Verification"
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center;">
-        <h2 style="color: #2563eb;">Verify your Job Dekho Account</h2>
-        <p style="color: #475569;">Your 6-digit verification code is:</p>
+        <h2 style="color: #2563eb;">Job Dekho {action}</h2>
+        <p style="color: #475569;">Your 6-digit code is:</p>
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; font-size: 28px; font-weight: bold; letter-spacing: 6px;">
             {otp}
         </div>
         <p style="font-size: 12px; color: #94a3b8;">This code expires in 10 minutes.</p>
     </div>
     """
-    send_email_via_api(email, "Job Dekho Verification Code", html)
+    send_email_via_api(email, f"Job Dekho - {action} Code", html)
 
 @router.post("/send-otp")
 async def send_candidate_otp(data: AuthPayload, background_tasks: BackgroundTasks):
@@ -85,7 +84,7 @@ async def send_candidate_otp(data: AuthPayload, background_tasks: BackgroundTask
         {"$set": {"otp": otp, "password": hashed_password, "type": "candidate"}}, 
         upsert=True
     )
-    background_tasks.add_task(send_otp_email, data.email, otp)
+    background_tasks.add_task(send_otp_email, data.email, otp, False)
     return {"success": True, "message": "OTP sent."}
 
 @router.post("/verify-otp")
@@ -108,7 +107,7 @@ async def verify_candidate_otp(data: VerifyPayload):
     }
     
     profiles_collection.insert_one(profile_payload)
-    otps_collection.delete_one({"email": data.email})
+    otps_collection.delete_one({"email": data.email, "type": "candidate"})
     return {"success": True, "message": "Registration complete!"}
 
 @router.post("/login")
@@ -135,22 +134,31 @@ async def forgot_password(req: ForgotPasswordRequest, background_tasks: Backgrou
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this email.")
     
-    reset_token = uuid.uuid4().hex
-    expiry_time = datetime.utcnow() + timedelta(hours=1)
+    # Generate 6-digit OTP instead of a URL token
+    otp = str(random.randint(100000, 999999))
     
-    profiles_collection.update_one(
+    otps_collection.update_one(
         {"email": req.email},
-        {"$set": {"resetToken": reset_token, "resetTokenExpiry": expiry_time}}
+        {"$set": {"otp": otp, "type": "password_reset"}},
+        upsert=True
     )
     
-    reset_url = f"http://localhost:3000?resetToken={reset_token}&email={req.email}"
+    background_tasks.add_task(send_otp_email, req.email, otp, True)
+    return {"success": True, "message": "Password reset OTP sent to your email!"}
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    record = otps_collection.find_one({"email": req.email, "otp": req.otp, "type": "password_reset"})
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset OTP.")
+        
+    hashed_password = pwd_context.hash(req.newPassword)
     
-    html = f"""
-        <div style="font-family: Arial, sans-serif; padding: 25px; color: #333;">
-            <h2 style="color: #2563eb;">Password Reset Assistance</h2>
-            <p>Click the secure button below to proceed with setting your new password:</p>
-            <a href="{reset_url}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Your Password</a>
-        </div>
-    """
-    background_tasks.add_task(send_email_via_api, req.email, "Password Reset Request - Job Dekho", html)
-    return {"success": True, "message": "Password reset email successfully sent!"}
+    # Update password and delete OTP
+    profiles_collection.update_one(
+        {"email": req.email},
+        {"$set": {"password": hashed_password}}
+    )
+    otps_collection.delete_many({"email": req.email, "type": "password_reset"})
+    
+    return {"success": True, "message": "Password successfully updated!"}
