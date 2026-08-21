@@ -173,8 +173,7 @@ ai-job-board/
 │       ├── resume.py            # PDF parsing pipelines & AI resume optimization utilities
 │       ├── chat.py              # Conversational backend for the interactive AI Career Coach widget
 │       └── premium.py           # Mock Stripe checkout, ATS percentage scoring, and email starter kits
-└── frontend/
-    └── app/
+└── app/
         ├── page.tsx              # Dynamic landing page, typewriter hero effects, and portal mode switcher
         ├── LoginForm.tsx         # Secure authentication & OTP-based password reset interface
         ├── CandidateDashboard.tsx  # Job feed, multi-filter sidebar, profile management, and interview hub
