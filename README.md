@@ -57,7 +57,7 @@ Both workflows are backed by the same semantic core: job descriptions and resume
 
 | # | Requirement | Status | Where |
 | --- | --- | --- | --- |
-| 1 | Multi-platform job data (source dropdown, filtering, storage) | ⚠️ Partial — see [Known Limitations](#-known-limitations--trade-offs) | `jobs.py`, `employer.py` |
+| 1 | Multi-platform job data (source dropdown, filtering, storage) | ✅ Working — dropdown filters by source (LinkedIn, Naukri, Indeed, Internshala, + others); listing-level dedup still a gap, see [Known Limitations](#-known-limitations--trade-offs) | `jobs.py`, `employer.py` |
 | 2 | AI-based job classification & tagging | ⚠️ Partial — see [Known Limitations](#-known-limitations--trade-offs) | `employer.py` |
 | 3 | Resume-based personalized recommendations | ✅ Working | `resume.py`, `vector_db.py` |
 | 4 | Conversational AI Job Assistant (user-supplied Gemini key) | ✅ Working | `chat.py`, `AICareerCoach.tsx` |
@@ -306,25 +306,31 @@ ai-job-board/
 
 ## ⚙️ Engineering Workflows & How the AI Components Work
 
-### 1. Semantic Vector Search & Indexing Pipeline
+### 1. Multi-Platform Job Source Filtering
+
+- Job listings carry a `source` field identifying which platform they originated from (Job Dekho native postings, LinkedIn, Naukri, Indeed, Internshala, and a few additional aggregated sources).
+- The **Job Portal** filter in the UI (`jobs.py`) queries MongoDB scoped to the selected source, so switching the dropdown returns only listings from that platform rather than filtering client-side against the full dataset.
+- This sits alongside the other structured filters (date, experience, location, skill), all of which compose into a single compound query against MongoDB.
+
+### 2. Semantic Vector Search & Indexing Pipeline
 
 - When an employer publishes a vacancy via the Recruiter Studio (`employer.py`), the description is pre-processed using high-speed regex normalizers (`fast_clean_description`) to format headers and bullet points.
 - The system constructs a structured context string (`build_job_text`) which is vectorized locally via `sentence-transformers/all-MiniLM-L6-v2` (`generate_embedding`).
 - The vector is pushed to **Qdrant Cloud** linked via a deterministic UUID payload (`uuid.uuid5`), ensuring idempotent upserts and zero-drift indexing during semantic candidate matching.
 
-### 2. Generative AI Resume Diagnostics & Skill-Gap Analysis
+### 3. Generative AI Resume Diagnostics & Skill-Gap Analysis
 
 - Candidate resumes are parsed via PyPDF, matched against live job requirements through the vector layer, and analyzed through Google Gemini models (`user.py`, `resume.py`).
 - The AI engine evaluates the gap between resume content and target job requirements to surface missing high-demand skills and actionable career growth advice.
 - The **AI Career Coach** (`AICareerCoach.tsx`) maintains contextual memory across dialogue sessions to deliver real-time mock interviews and tailored guidance.
 
-### 3. Conversational AI Job Assistant — User-Supplied API Key
+### 4. Conversational AI Job Assistant — User-Supplied API Key
 
 - The AI Job Assistant does **not** rely on a shared backend Gemini key for its conversational features. Users provide their own Gemini API key through the frontend, which is used only for the duration of the session to authenticate calls made on their behalf.
 - This follows the assignment's security requirement directly: no persistent storage of user-supplied credentials, and no shared cost/rate-limit surface across users.
 - The assistant answers questions like job-fit suitability, missing skills, job description explanation, and resume improvement suggestions, grounded in the candidate's parsed resume and the selected job's data.
 
-### 4. Secure Cloud Communication
+### 5. Secure Cloud Communication
 
 - To prevent email failures caused by cloud hosting firewalls blocking traditional SMTP ports, all outbound notifications utilize **Brevo's REST API** over standard HTTPS.
 - Credentials and tokens are isolated through environment variables (`MONGODB_URI`, `QDRANT_API_KEY`, `GEMINI_API_KEY`, `BREVO_API_KEY`) and are never committed to source control.
@@ -351,7 +357,6 @@ Being direct about what isn't finished, in line with the assignment's expectatio
 
 - **Job listing deduplication is not yet implemented.** Every published job is currently assigned a fresh random UUID (`uuid.uuid4()`) rather than a deterministic one, both in MongoDB and in the corresponding Qdrant point. This means a duplicate or repeated publish action (e.g. an employer double-clicking "Submit") will create two identical entries rather than being caught. Dedup **is** working correctly elsewhere in the system — email registration, duplicate job applications, and saved-job toggles all check for existing records before writing — but that same check was not extended to job creation itself. The fix is straightforward: switch job creation to a deterministic ID derived from a normalized hash of the job's source, title, company, and posted date, mirroring the pattern already used for vector upserts.
 - **AI-based tagging is string-parsed, not LLM-extracted.** Job filters and tags (skills, category, experience level) currently come from direct structured input and lightweight string parsing rather than a dedicated Gemini extraction pass over unstructured job description text. The semantic matching layer (embeddings + Gemini reasoning) is fully AI-driven; the tagging/filtering layer is not. Closing this gap would mean adding an extraction step in the job ingestion pipeline (`employer.py`) that prompts Gemini to return structured tags from the raw description, then persists those alongside the existing fields.
-- **Platform-source filtering is not yet wired to a dedicated multi-source dataset selector.** The current job data flow does not yet expose a source dropdown (LinkedIn / Naukri / Indeed / Internshala) backed by the assignment-provided dataset as a first-class filter in the UI.
 - **No automated test suite.** Correctness has been validated through manual end-to-end runs of the candidate and employer flows rather than unit or integration tests.
 - **Cold starts on Render's free/starter tier.** The `sentence-transformers` model loads into memory on backend startup, so the first request after an idle period can be noticeably slower than steady-state.
 
