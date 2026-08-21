@@ -1,7 +1,6 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  allowedDevOrigins: ['10.243.15.140', 'localhost:3000'],
+/** @type {import('next').Next.jsConfig} */
+const nextConfig = {
+  output: 'standalone', // Required for Docker containerization
 };
 
-export default nextConfig;
+module.exports = nextConfig;
