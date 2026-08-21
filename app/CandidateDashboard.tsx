@@ -78,9 +78,11 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const [scoring, setScoring] = useState(false);
 
   const [prepTab, setPrepTab] = useState<'applied' | 'shortlisted' | 'saved'>('applied');
-  const [activePrepJob, setActivePrepJob] = useState<any | null>(null);
-  const [generatedQuestions, setGeneratedQuestions] = useState<string>('');
-  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  
+  // Independent per-job preparation state mapping to prevent global activation
+  const [expandedJobKey, setExpandedJobKey] = useState<string | null>(null);
+  const [jobQuestionsMap, setJobQuestionsMap] = useState<Record<string, string>>({});
+  const [loadingJobKey, setLoadingJobKey] = useState<string | null>(null);
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -405,10 +407,10 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     }
   };
 
-  const handleGenerateTopQuestions = async (job: any) => {
-    setGeneratingQuestions(true);
-    setActivePrepJob(job);
-    setGeneratedQuestions('');
+  const handleGenerateTopQuestions = async (job: any, uniqueKey: string) => {
+    setLoadingJobKey(uniqueKey);
+    setExpandedJobKey(uniqueKey);
+    setJobQuestionsMap(prev => ({ ...prev, [uniqueKey]: '' }));
     try {
       const res = await fetch(`${API_BASE}/api/premium/top-technical-questions`, {
         method: 'POST',
@@ -421,14 +423,14 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
       });
       const data = await res.json();
       if (data.success) {
-        setGeneratedQuestions(data.questions);
+        setJobQuestionsMap(prev => ({ ...prev, [uniqueKey]: data.questions }));
       } else {
-        setGeneratedQuestions("Failed to generate questions.");
+        setJobQuestionsMap(prev => ({ ...prev, [uniqueKey]: "Failed to generate questions." }));
       }
     } catch (err) {
-      setGeneratedQuestions("Network error generating questions.");
+      setJobQuestionsMap(prev => ({ ...prev, [uniqueKey]: "Network error generating questions." }));
     } finally {
-      setGeneratingQuestions(false);
+      setLoadingJobKey(null);
     }
   };
 
@@ -1046,51 +1048,57 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {currentPrepJobList.map((job: any, idx: number) => (
-                  <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-full border border-blue-100">{job.status || 'Saved / Target'}</span>
-                          <span className="text-xs text-slate-400">• {job.company_name}</span>
-                        </div>
-                        <h3 className="text-xl font-black text-slate-900">{job.title}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">📍 {job.location || 'Remote'}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button 
-                          onClick={() => handleGenerateTopQuestions(job)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow transition-all flex items-center gap-2"
-                        >
-                          <span>⚡ Generate Top 10 Tech Questions</span>
-                        </button>
-                        <button 
-                          onClick={() => handleRequestInterviewKit(job.title, job.company_name, job.description || job.title)}
-                          className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow transition-all flex items-center gap-2"
-                        >
-                          <span>📧 Email Prep Starter Kit</span>
-                        </button>
-                      </div>
-                    </div>
+                {currentPrepJobList.map((job: any, idx: number) => {
+                  const uniqueJobKey = job.job_id || job._id || `prep_job_${idx}`;
+                  const isThisExpanded = expandedJobKey === uniqueJobKey;
+                  const isThisLoading = loadingJobKey === uniqueJobKey;
 
-                    {activePrepJob && (activePrepJob.job_id === job.job_id || activePrepJob._id === job._id) && (
-                      <div className="bg-indigo-50/60 border border-indigo-100 p-6 rounded-2xl animate-in fade-in duration-200">
-                        <h4 className="font-black text-indigo-950 text-sm mb-3 flex items-center gap-2">
-                          <span>🤖</span> Top 10 Technical & System Design Questions for {job.company_name}
-                        </h4>
-                        {generatingQuestions ? (
-                          <div className="py-8 text-center text-indigo-600 font-bold text-xs animate-pulse">
-                            Synthesizing role requirements and querying Gemini engine...
+                  return (
+                    <div key={uniqueJobKey} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-6">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-full border border-blue-100">{job.status || 'Saved / Target'}</span>
+                            <span className="text-xs text-slate-400">• {job.company_name}</span>
                           </div>
-                        ) : (
-                          <div className="whitespace-pre-wrap text-xs text-slate-700 leading-relaxed bg-white p-5 rounded-xl border border-indigo-100 shadow-sm font-medium">
-                            {generatedQuestions}
-                          </div>
-                        )}
+                          <h3 className="text-xl font-black text-slate-900">{job.title}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">📍 {job.location || 'Remote'}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => handleGenerateTopQuestions(job, uniqueJobKey)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow transition-all flex items-center gap-2"
+                          >
+                            <span>⚡ Generate Top 10 Tech Questions</span>
+                          </button>
+                          <button 
+                            onClick={() => handleRequestInterviewKit(job.title, job.company_name, job.description || job.title)}
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow transition-all flex items-center gap-2"
+                          >
+                            <span>📧 Email Prep Starter Kit</span>
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {isThisExpanded && (
+                        <div className="bg-indigo-50/60 border border-indigo-100 p-6 rounded-2xl animate-in fade-in duration-200">
+                          <h4 className="font-black text-indigo-950 text-sm mb-3 flex items-center gap-2">
+                            <span>🤖</span> Top 10 Technical & System Design Questions for {job.company_name}
+                          </h4>
+                          {isThisLoading ? (
+                            <div className="py-8 text-center text-indigo-600 font-bold text-xs animate-pulse">
+                              Synthesizing role requirements and querying Gemini engine...
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap text-xs text-slate-700 leading-relaxed bg-white p-5 rounded-xl border border-indigo-100 shadow-sm font-medium">
+                              {jobQuestionsMap[uniqueJobKey] || "No questions generated yet."}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
