@@ -10,6 +10,7 @@
 !.yarn/releases
 !.yarn/versions
 
+vulnerable/
 # testing
 /coverage
 
@@ -29,13 +30,24 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
+__pycache__/
+*.pyc
 # env files (can opt-in for committing if needed)
-.env*
-
+.env
+backend/.env
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+node_modules/
+jobs_data.json
+*.json.gz
+
+job-assist/
+venv/
+env/
+jobs_data.json
+__pycache__/
+*.pyc

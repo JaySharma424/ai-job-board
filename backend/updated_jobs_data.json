@@ -1,0 +1,22 @@
+[
+    {
+        "job_id": "3caff227-b758-49e2-9f41-6afa387c163f",
+        "title": "Web Designer",
+        "company_name": "AI Design",
+        "location": "Bengaluru, Karnataka",
+        "minExperienceRequired": "Fresher",
+        "description": "Key ResponsibilitiesCreate website layouts, user flows, and wireframesDesign web graphics, banners, and UI elementsConvert design mockups into clean HTML and CSSTest pages for mobile responsiveness and cross-browser compatibilityUpdate existing web pages and fix visual bugs\nRequired SkillsDesign tools: Figma, Adobe XD, Photoshop, IllustratorCoding basics: HTML5, CSS3, and basic JavaScriptCore concepts: Color theory, typography, and responsive designAsset readiness: A working portfolio of student or personal projects",
+        "via": "Direct Employer",
+        "ai_tags": {
+            "skills": [
+                "Python",
+                "React",
+                "FastAPI",
+                "Machine Learning"
+            ]
+        },
+        "employer_email": "sundramkumar121314@gmail.com",
+        "posted_date": "2026-08-21T06:40:43.084780",
+        "_id": "6a87f2ebc15da4d18da5b326"
+    }
+]
