@@ -16,10 +16,11 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onGuestL
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Dynamic API Base URL based on runtime hostname (fixes production network errors)
-  const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : 'https://ai-job-board-backend-izko.onrender.com';
+  // Dynamic API Base URL supporting local testing and Render production
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
+    (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000' 
+      : 'https://ai-job-board-backend-izko.onrender.com');
 
   // Check URL parameters for password reset link handling
   useEffect(() => {
@@ -39,32 +40,40 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onGuestL
     setSuccess('');
 
     if (mode === 'forgot') {
-      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json();
-      if (data.success) setSuccess(data.message);
-      else setError(data.error || data.detail);
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.success) setSuccess(data.message);
+        else setError(data.error || data.detail);
+      } catch (err) {
+        setError('Network error connecting to backend.');
+      }
       return;
     }
 
     if (mode === 'updatePassword') {
-      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, resetToken, newPassword: password })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSuccess(data.message);
-        setTimeout(() => { 
-          setMode('login'); 
-          window.history.replaceState({}, document.title, window.location.pathname); 
-        }, 2000);
-      } else {
-        setError(data.error || data.detail);
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, resetToken, newPassword: password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSuccess(data.message);
+          setTimeout(() => { 
+            setMode('login'); 
+            window.history.replaceState({}, document.title, window.location.pathname); 
+          }, 2000);
+        } else {
+          setError(data.error || data.detail);
+        }
+      } catch (err) {
+        setError('Network error connecting to backend.');
       }
       return;
     }
