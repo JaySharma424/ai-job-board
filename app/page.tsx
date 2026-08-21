@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react';
 import CandidateDashboard from './CandidateDashboard';
 import EmployerDashboard from './EmployerDashboard';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Dynamic API Base URL based on runtime hostname (No build-time caching issues!)
+  const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : 'https://ai-job-board-backend-izko.onrender.com';
 export default function Home() {
   const [user, setUser] = useState<{ email: string; isGuest: boolean } | null>(null);
   const [portalMode, setPortalMode] = useState<'candidate' | 'employer'>('candidate');
