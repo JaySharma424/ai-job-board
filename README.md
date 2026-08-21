@@ -4,7 +4,7 @@
 
 ### AI-Powered Job Board & Career Ecosystem
 
-**Production-grade full-stack recruitment platform** engineered with a FastAPI asynchronous backend, Next.js App Router frontend, Qdrant Cloud vector database, MongoDB Atlas storage, local sentence-transformers embedding pipelines, and Google Gemini generative AI.
+**A full-stack recruitment platform** engineered with a FastAPI asynchronous backend, Next.js App Router frontend, Qdrant Cloud vector database, MongoDB Atlas storage, local sentence-transformers embedding pipelines, and Google Gemini generative AI.
 
 [![Backend](https://img.shields.io/badge/backend-FastAPI-0f172a?logo=fastapi&logoColor=white)](#)
 [![Frontend](https://img.shields.io/badge/frontend-Next.js%2014-3b82f6?logo=next.js&logoColor=white)](#)
@@ -160,26 +160,56 @@ flowchart TB
 
 ```text
 ai-job-board/
+├── app/
+│   ├── AICareerCoach.tsx
+│   ├── CandidateDashboard.tsx
+│   ├── EmployerAuth.tsx
+│   ├── EmployerDashboard.tsx
+│   ├── LoginForm.tsx
+│   ├── RegisterForm.tsx
+│   ├── UpdateUserDetails.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
 ├── backend/
-│   ├── main.py                  # FastAPI entry point, CORS middleware, and Qdrant startup triggers
-│   ├── database.py              # MongoDB client configuration & collection mapping
-│   ├── vector_db.py             # Local FastEmbed model loader & Qdrant cloud collection initialization
-│   ├── requirements.txt         # Production Python dependencies (fastapi, uvicorn, pymongo, qdrant-client, requests)
-│   └── routers/
-│       ├── auth.py              # Candidate authentication, registration OTPs, and password recovery
-│       ├── employer.py          # Employer onboarding, GST validation, job publishing, and vector upsert
-│       ├── user.py              # Candidate profile CRUD, job applications, saved listings, and Gemini analytics
-│       ├── jobs.py              # Advanced job search, keyword parsing, and multi-filter logic
-│       ├── resume.py            # PDF parsing pipelines & AI resume optimization utilities
-│       ├── chat.py              # Conversational backend for the interactive AI Career Coach widget
-│       └── premium.py           # Mock Stripe checkout, ATS percentage scoring, and email starter kits
-└── app/
-        ├── page.tsx              # Dynamic landing page, typewriter hero effects, and portal mode switcher
-        ├── LoginForm.tsx         # Secure authentication & OTP-based password reset interface
-        ├── CandidateDashboard.tsx  # Job feed, multi-filter sidebar, profile management, and interview hub
-        ├── EmployerDashboard.tsx   # Recruiter metrics overview, job requisition publisher, and pipeline tracking
-        ├── AICareerCoach.tsx      # Interactive AI assistant floating widget with session state management
-        └── UpdateUserDetails.tsx   # Modal component for editing candidate professional attributes
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── chat.py
+│   │   ├── employer.py
+│   │   ├── jobs.py
+│   │   ├── premium.py
+│   │   ├── resume.py
+│   │   └── user.py
+│   ├── Dockerfile
+│   ├── database.py
+│   ├── main.py
+│   ├── models.py
+│   ├── normalize_jobs.py
+│   ├── requirements.txt
+│   ├── seed_mongo_fast.py
+│   ├── updated_jobs_data.json
+│   └── vector_db.py
+├── public/
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── scripts/
+│   ├── enrich/jobs.mjs
+│   └── seed.mjs
+├── .gitignore
+├── Dockerfile
+├── README.md
+├── eslint.config.mjs
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── tsconfig.json
+└── workflow-diagram.png
 ```
 
 ---
