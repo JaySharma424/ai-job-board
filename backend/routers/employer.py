@@ -9,15 +9,12 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any
 
-# Ensure database and vector DB are imported!
 from database import db, jobs_collection, profiles_collection, applications_collection
 from vector_db import qdrant_client, COLLECTION_NAME, generate_embedding
 from qdrant_client.http import models
 
 otps_collection = db["otps"]
 
-# --- ABSOLUTE PATH FIX ---
-# Ensures Python always finds and updates your main JSON file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JSON_DB_PATH = os.path.join(BASE_DIR, "jobs_data.json")
 
@@ -26,7 +23,6 @@ router = APIRouter(
     tags=["Employer & Recruiter Portal"]
 )
 
-# --- SCHEMAS ---
 class EmployerRegisterPayload(BaseModel):
     email: EmailStr
     password: str
@@ -61,13 +57,14 @@ class JobPostRequest(BaseModel):
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
-# --- NLP / TEXT NORMALIZATION HELPER ---
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    newPassword: str
+
 def fast_clean_description(text: str) -> str:
-    """Uses lightning-fast Regex to fix clumping and format bullet points"""
     if not text or not isinstance(text, str):
         return ""
-    
-    # Un-clump Headers
     common_headers = [
         "Required Skills", "Key Responsibilities", "Qualifications", 
         "Job Description", "Role Description", "About Us", "Requirements",
@@ -75,63 +72,52 @@ def fast_clean_description(text: str) -> str:
     ]
     for header in common_headers:
         text = re.sub(rf'({header})([A-Z])', r'\1:\n\n\2', text, flags=re.IGNORECASE)
-
-    # General Boundary Un-clumping
     text = re.sub(r'([a-z0-9\.])([A-Z][a-z]+)', r'\1\n\2', text)
-
-    # Clean up weird bullet point spacing
     text = re.sub(r'([^\n])(\s*[-•*]\s+[A-Z])', r'\1\n\n\2', text)
-    
     return text.strip()
 
-# --- VECTOR TEXT BUILDER HELPER ---
 def build_job_text(job: dict) -> str:
-    """Extracts all rich data to generate an incredibly accurate AI vector"""
     skills_str = job.get("skills", "")
     exp_str = job.get("minExperienceRequired", "Not Specified")
     location = job.get("location", "Remote")
     desc = str(job.get("description", ""))[:300].replace("\n", " ")
-    
-    return f"""
-    Title: {job.get('title', '')}
-    Company: {job.get('company_name', '')}
-    Location: {location}
-    Experience: {exp_str}
-    Skills: {skills_str}
-    Description: {desc}
-    """.strip()
+    return f"Title: {job.get('title', '')}\nCompany: {job.get('company_name', '')}\nLocation: {location}\nExperience: {exp_str}\nSkills: {skills_str}\nDescription: {desc}".strip()
 
-# --- FREE HTTP API SENDER UTILITY ---
 def send_email_via_api(to_email: str, subject: str, html_content: str):
-    """Bypasses Render's blocked SMTP ports by using Resend's HTTPS API"""
-    api_key = os.getenv("RESEND_API_KEY")
+    """Bypasses Render's blocked SMTP ports by using Brevo's HTTPS API"""
+    api_key = os.getenv("BREVO_API_KEY")
     if not api_key:
-        print("❌ [SMTP ERROR] RESEND_API_KEY missing in backend/.env")
+        print("❌ BREVO_API_KEY missing in environment variables")
         return
-        
-    url = "https://api.resend.com/emails"
+
+    url = "https://api.brevo.com/v3/smtp/email"
     headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
     }
     payload = {
-        "from": "Job Dekho Recruiter <onboarding@resend.dev>",
-        "to": [to_email],
+        "sender": {"name": "Job Dekho Recruiter", "email": "dhananjayraj8210@gmail.com"},
+        "to": [{"email": to_email}],
         "subject": subject,
-        "html": html_content
+        "htmlContent": html_content
     }
     
     try:
         response = requests.post(url, headers=headers, json=payload)
-        if response.status_code == 200:
-            print("✅ Corporate Email sent successfully via HTTP API!")
+        if response.status_code in [200, 201, 202, 204]:
+            print("✅ Corporate Email sent successfully via Brevo HTTP API!")
         else:
             print(f"❌ Failed to send email: {response.text}")
     except Exception as e:
         print(f"❌ Network Error: {e}")
 
-def send_employer_otp_email(email: str, otp: str, is_login: bool = False):
-    action_text = "Login Verification" if is_login else "Account Registration"
+def send_employer_otp_email(email: str, otp: str, is_login: bool = False, is_reset: bool = False):
+    if is_reset:
+        action_text = "Password Reset"
+    else:
+        action_text = "Login Verification" if is_login else "Account Registration"
+        
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center;">
         <h2 style="color: #f59e0b;">Job Dekho Recruiter Suite</h2>
@@ -144,9 +130,6 @@ def send_employer_otp_email(email: str, otp: str, is_login: bool = False):
     """
     send_email_via_api(email, f"Job Dekho Recruiter OTP - {action_text}", html)
 
-# ----------------------------------------------------
-# ENDPOINTS
-# ----------------------------------------------------
 @router.post("/login")
 async def login_employer(data: EmployerLoginPayload, background_tasks: BackgroundTasks):
     user = profiles_collection.find_one({"email": data.email, "role": "employer"})
@@ -154,7 +137,7 @@ async def login_employer(data: EmployerLoginPayload, background_tasks: Backgroun
         raise HTTPException(status_code=400, detail="Invalid corporate email or password.")
     otp = str(random.randint(100000, 999999))
     otps_collection.update_one({"email": data.email}, {"$set": {"otp": otp, "type": "employer_login"}}, upsert=True)
-    background_tasks.add_task(send_employer_otp_email, data.email, otp, True)
+    background_tasks.add_task(send_employer_otp_email, data.email, otp, True, False)
     return {"success": True, "requires_otp": True, "message": "Login OTP sent."}
 
 @router.post("/send-otp")
@@ -163,7 +146,7 @@ async def send_employer_otp(data: EmployerRegisterPayload, background_tasks: Bac
         raise HTTPException(status_code=400, detail="Corporate email already registered.")
     otp = str(random.randint(100000, 999999))
     otps_collection.update_one({"email": data.email}, {"$set": {"otp": otp, "payload": data.dict(), "type": "employer_register"}}, upsert=True)
-    background_tasks.add_task(send_employer_otp_email, data.email, otp, False)
+    background_tasks.add_task(send_employer_otp_email, data.email, otp, False, False)
     return {"success": True, "message": "Registration OTP sent."}
 
 @router.post("/verify-otp")
@@ -192,14 +175,33 @@ async def save_employer_profile(data: dict):
 
 @router.post("/forgot-password")
 async def recruiter_forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks):
-    reset_code = "".join(random.choices("0123456789", k=6))
-    html = f"<div style='font-family: Arial, sans-serif; text-align: center;'><h2 style='color: #2563eb;'>Recruiter Password Reset</h2><div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold;'>{reset_code}</div></div>"
-    background_tasks.add_task(send_email_via_api, data.email, "Recruiter Password Reset Code", html)
-    return {"success": True, "message": f"Instructions sent to {data.email}."}
+    user = profiles_collection.find_one({"email": data.email, "role": "employer"})
+    if not user:
+        raise HTTPException(status_code=404, detail="No employer account found with this email.")
+        
+    otp = str(random.randint(100000, 999999))
+    otps_collection.update_one(
+        {"email": data.email}, 
+        {"$set": {"otp": otp, "type": "employer_password_reset"}}, 
+        upsert=True
+    )
+    background_tasks.add_task(send_employer_otp_email, data.email, otp, False, True)
+    return {"success": True, "message": "Password reset OTP sent!"}
 
-# ----------------------------------------------------
-# POST JOB: FORMAT + MONGODB + QDRANT + JSON BACKUP
-# ----------------------------------------------------
+@router.post("/reset-password")
+async def reset_employer_password(req: ResetPasswordRequest):
+    record = otps_collection.find_one({"email": req.email, "otp": req.otp, "type": "employer_password_reset"})
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset OTP.")
+        
+    profiles_collection.update_one(
+        {"email": req.email, "role": "employer"},
+        {"$set": {"password": req.newPassword}} 
+    )
+    otps_collection.delete_many({"email": req.email, "type": "employer_password_reset"})
+    
+    return {"success": True, "message": "Password successfully updated!"}
+
 @router.post("/jobs")
 async def post_employer_job(data: JobPostRequest):
     try:
@@ -210,7 +212,6 @@ async def post_employer_job(data: JobPostRequest):
         if data.skills and "skills" not in ai_tags:
             ai_tags["skills"] = [s.strip() for s in data.skills.split(",") if s.strip()]
 
-        # 1. PRE-PROCESS: NLP Formatting
         formatted_desc = fast_clean_description(data.description)
 
         job_doc = {
@@ -219,8 +220,8 @@ async def post_employer_job(data: JobPostRequest):
             "company_name": data.company_name,
             "location": data.location or "Remote",
             "minExperienceRequired": exp,
-            "description": data.description,               # Raw for LLM later
-            "formattedDescription": formatted_desc,        # Clean for UI
+            "description": data.description,               
+            "formattedDescription": formatted_desc,        
             "skills": data.skills,
             "via": "Direct Employer",
             "ai_tags": ai_tags,
@@ -228,20 +229,14 @@ async def post_employer_job(data: JobPostRequest):
             "posted_date": datetime.utcnow().isoformat()
         }
 
-        # 2. DATABASE: Save to MongoDB
         result = jobs_collection.insert_one(job_doc.copy())
         mongo_id = str(result.inserted_id)
         job_doc["_id"] = mongo_id
-        print("✅ Succesfully Updated the Database...")
 
-        # 3. VECTOR DB: Embed and Push to Qdrant Cloud
         if qdrant_client:
-            print(f"🧠 Generating embedding for new job: {data.title}...")
             vector_text = build_job_text(job_doc)
             vector = generate_embedding(vector_text)
-            
             if vector:
-                print("🚀 Uploading new job vector to Qdrant Cloud...")
                 point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, mongo_id))
                 qdrant_client.upsert(
                     collection_name=COLLECTION_NAME,
@@ -257,11 +252,9 @@ async def post_employer_job(data: JobPostRequest):
                             }
                         )
                     ],
-                    wait=False # Don't block the API response
+                    wait=False 
                 )
-            print("✅ Vector stored in Qdrant Cloud.")
 
-        # 4. JSON BACKUP: Append to local file
         try:
             jobs_list = []
             if os.path.exists(JSON_DB_PATH):
@@ -277,16 +270,12 @@ async def post_employer_job(data: JobPostRequest):
             with open(JSON_DB_PATH, "w", encoding="utf-8") as f:
                 json.dump(jobs_list, f, indent=4)
         except Exception as json_err:
-            print(f"⚠️ Warning: Failed to save to local JSON file: {json_err}")
+            pass
 
         return {"success": True, "job_id": unique_job_id, "message": "Job successfully published and indexed by AI!"}
     except Exception as e:
-        print(f"Error posting job: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Server error posting job: {str(e)}")
 
-# ----------------------------------------------------
-# REAL-TIME DASHBOARD ANALYTICS
-# ----------------------------------------------------
 @router.get("/analytics")
 async def get_employer_analytics(email: str):
     try:

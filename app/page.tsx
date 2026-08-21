@@ -33,10 +33,13 @@ export default function Home() {
   
   // Forgot Password State
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [sendingReset, setSendingReset] = useState(false);
 
-  // 🚀 ONLY ONE API_BASE HERE: Dynamic runtime check 🚀
+  // 🚀 Dynamic API Base URL
   const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
     : 'https://ai-job-board-backend-izko.onrender.com';
@@ -58,7 +61,6 @@ export default function Home() {
     e.preventDefault();
     setError('');
 
-    // 1. CANDIDATE LOGIN
     if (portalMode === 'candidate' && isLogin) {
       try {
         const res = await fetch(`${API_BASE}/api/auth/login`, {
@@ -78,7 +80,6 @@ export default function Home() {
       return;
     }
 
-    // 2. EMPLOYER LOGIN (Sends OTP)
     if (portalMode === 'employer' && !isEmployerRegister) {
       try {
         const res = await fetch(`${API_BASE}/api/employer/login`, {
@@ -98,7 +99,6 @@ export default function Home() {
       return;
     }
 
-    // 3. CANDIDATE OR EMPLOYER REGISTRATION (Sends OTP)
     const endpoint = portalMode === 'employer' 
       ? `${API_BASE}/api/employer/send-otp` 
       : `${API_BASE}/api/auth/send-otp`;
@@ -157,7 +157,6 @@ export default function Home() {
     e.preventDefault();
     setSendingReset(true);
     
-    // Uses the one true API_BASE
     const endpoint = portalMode === 'employer' 
       ? `${API_BASE}/api/employer/forgot-password` 
       : `${API_BASE}/api/auth/forgot-password`;
@@ -170,11 +169,41 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.success) { 
-        alert(data.message); 
-        setShowForgotModal(false); 
-        setForgotEmail(''); 
+        setForgotStep(2); // Move to OTP input screen
       } else { 
         alert(data.detail || "Failed to send instructions."); 
+      }
+    } catch (err) { 
+      alert("Network error."); 
+    } finally { 
+      setSendingReset(false); 
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSendingReset(true);
+    
+    const endpoint = portalMode === 'employer' 
+      ? `${API_BASE}/api/employer/reset-password` 
+      : `${API_BASE}/api/auth/reset-password`;
+      
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, newPassword })
+      });
+      const data = await res.json();
+      if (data.success) { 
+        alert(data.message); 
+        setShowForgotModal(false);
+        setForgotStep(1);
+        setForgotEmail('');
+        setForgotOtp('');
+        setNewPassword('');
+      } else { 
+        alert(data.detail || "Failed to reset password."); 
       }
     } catch (err) { 
       alert("Network error."); 
@@ -193,7 +222,6 @@ export default function Home() {
 
   if (!mounted) return null;
 
-  // Feature Data for the dynamic below-the-fold section
   const candidateFeatures = [
     { icon: "⚡", title: "1-Click Auto Apply", desc: "Our AI generates custom cover letters and applies to top matches instantly." },
     { icon: "🤖", title: "Executive Interview Coach", desc: "Practice mock interviews and STAR method drills tailored to your target role." },
@@ -230,7 +258,6 @@ export default function Home() {
       {/* --- STICKY HEADER --- */}
       <header className="fixed w-full top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setPortalMode('candidate'); setIsEmployerRegister(false); setIsLogin(true); }}>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg transition-all duration-500 group-hover:rotate-12 ${portalMode === 'employer' ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-orange-500/30' : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/30'}`}>
               {portalMode === 'employer' ? 'E' : 'A'}
@@ -238,7 +265,6 @@ export default function Home() {
             <span className="text-xl font-black tracking-tighter text-slate-900 leading-none">Job Dekho</span>
           </div>
 
-          {/* Interactive Segmented Control */}
           <div className="hidden md:flex bg-slate-100/80 p-1 rounded-full border border-slate-200 shadow-inner relative">
             <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-all duration-300 ease-out shadow-sm ${portalMode === 'employer' ? 'bg-amber-500 left-[calc(50%+2px)]' : 'bg-blue-600 left-1'}`}></div>
             <button 
@@ -255,7 +281,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Right Action */}
           <div>
              <button 
                 onClick={() => {
@@ -276,7 +301,6 @@ export default function Home() {
         {/* LEFT COLUMN: HERO COPY & FLOATING WIDGETS */}
         <div className="lg:col-span-7 flex flex-col gap-8 text-left relative">
           
-          {/* Floating Widget 1 */}
           <div className={`hidden md:flex absolute -left-12 top-10 bg-white/90 backdrop-blur-2xl border border-white/60 p-3.5 rounded-2xl shadow-xl shadow-slate-200/50 items-center gap-3 animate-float z-20 transition-all duration-500 ${portalMode === 'employer' ? 'border-amber-100' : 'border-blue-100'}`}>
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base ${portalMode === 'employer' ? 'bg-gradient-to-tr from-amber-100 to-orange-100 text-orange-600' : 'bg-gradient-to-tr from-emerald-100 to-teal-100 text-emerald-600'}`}>
               {portalMode === 'employer' ? '🔥' : '✓'}
@@ -287,7 +311,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Floating Widget 2 */}
           <div className={`hidden md:flex absolute right-10 -bottom-8 bg-white/90 backdrop-blur-2xl border border-white/60 p-3.5 rounded-2xl shadow-xl shadow-slate-200/50 items-center gap-3 animate-float-delayed z-20 transition-all duration-500 ${portalMode === 'employer' ? 'border-orange-100' : 'border-indigo-100'}`}>
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base ${portalMode === 'employer' ? 'bg-gradient-to-tr from-orange-100 to-red-100 text-orange-600' : 'bg-gradient-to-tr from-indigo-100 to-violet-100 text-indigo-600'}`}>
               {portalMode === 'employer' ? '⚡' : '✨'}
@@ -558,23 +581,42 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- FORGOT PASSWORD MODAL --- */}
+      {/* --- FORGOT PASSWORD MODAL WITH OTP VERIFICATION --- */}
       {showForgotModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-white/90 backdrop-blur-xl border border-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl relative text-center">
-            <button onClick={() => setShowForgotModal(false)} className="absolute top-6 right-8 text-2xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button>
+            <button onClick={() => { setShowForgotModal(false); setForgotStep(1); setForgotEmail(''); setForgotOtp(''); setNewPassword(''); }} className="absolute top-6 right-8 text-2xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button>
             <div className={`w-16 h-16 rounded-[1.2rem] flex items-center justify-center text-2xl mx-auto mb-6 shadow-inner border ${portalMode === 'employer' ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>🔐</div>
             <h3 className="text-xl font-black text-slate-900 mb-2">Reset Password</h3>
-            <p className="text-xs text-slate-500 mb-8 font-medium px-2">Enter your email and we'll send a secure reset link.</p>
-            <form onSubmit={handleForgotPasswordSubmit} className="flex flex-col gap-4 text-left">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Email</label>
-                <input type="email" required value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="name@example.com" className={`w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm outline-none focus:ring-4 transition-all font-semibold ${portalMode === 'employer' ? 'focus:border-amber-500 focus:ring-amber-500/20' : 'focus:border-blue-600 focus:ring-blue-500/20'}`} />
-              </div>
-              <button type="submit" disabled={sendingReset} className={`shimmer-btn w-full text-white font-black py-4 rounded-2xl text-sm shadow-xl transition-all disabled:opacity-50 mt-4 hover:-translate-y-0.5 ${portalMode === 'employer' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}`}>
-                {sendingReset ? "Sending Instructions..." : "Send Reset Link 📨"}
-              </button>
-            </form>
+            <p className="text-xs text-slate-500 mb-8 font-medium px-2">
+              {forgotStep === 1 ? "Enter your email and we'll send a secure reset OTP." : "Enter the 6-digit OTP and your new password."}
+            </p>
+            
+            {forgotStep === 1 ? (
+              <form onSubmit={handleForgotPasswordSubmit} className="flex flex-col gap-4 text-left">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Email</label>
+                  <input type="email" required value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="name@example.com" className={`w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm outline-none focus:ring-4 transition-all font-semibold ${portalMode === 'employer' ? 'focus:border-amber-500 focus:ring-amber-500/20' : 'focus:border-blue-600 focus:ring-blue-500/20'}`} />
+                </div>
+                <button type="submit" disabled={sendingReset} className={`shimmer-btn w-full text-white font-black py-4 rounded-2xl text-sm shadow-xl transition-all disabled:opacity-50 mt-4 hover:-translate-y-0.5 ${portalMode === 'employer' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}`}>
+                  {sendingReset ? "Sending OTP..." : "Send Reset OTP 📨"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPasswordSubmit} className="flex flex-col gap-4 text-left">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">6-Digit OTP</label>
+                  <input type="text" maxLength={6} required value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value)} placeholder="000000" className={`w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm outline-none focus:ring-4 transition-all font-semibold tracking-[0.5em] text-center ${portalMode === 'employer' ? 'focus:border-amber-500 focus:ring-amber-500/20' : 'focus:border-blue-600 focus:ring-blue-500/20'}`} />
+                </div>
+                <div className="flex flex-col gap-1.5 mt-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+                  <input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" className={`w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-sm outline-none focus:ring-4 transition-all font-semibold ${portalMode === 'employer' ? 'focus:border-amber-500 focus:ring-amber-500/20' : 'focus:border-blue-600 focus:ring-blue-500/20'}`} />
+                </div>
+                <button type="submit" disabled={sendingReset} className={`shimmer-btn w-full text-white font-black py-4 rounded-2xl text-sm shadow-xl transition-all disabled:opacity-50 mt-4 hover:-translate-y-0.5 ${portalMode === 'employer' ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}`}>
+                  {sendingReset ? "Updating Password..." : "Update Password 🔐"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

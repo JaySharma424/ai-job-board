@@ -30,28 +30,29 @@ class ResetPasswordRequest(BaseModel):
     newPassword: str
 
 def send_email_via_api(to_email: str, subject: str, html_content: str):
-    """Bypasses Render's blocked SMTP ports by using Resend's HTTPS API"""
-    api_key = os.getenv("RESEND_API_KEY")
+    """Bypasses Render's blocked SMTP ports by using Brevo's HTTPS API"""
+    api_key = os.getenv("BREVO_API_KEY")
     if not api_key:
-        print("❌ RESEND_API_KEY missing in environment variables")
+        print("❌ BREVO_API_KEY missing in environment variables")
         return
 
-    url = "https://api.resend.com/emails"
+    url = "https://api.brevo.com/v3/smtp/email"
     headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
     }
     payload = {
-        "from": "Job Dekho <onboarding@resend.dev>",
-        "to": [to_email],
+        "sender": {"name": "Job Dekho", "email": "dhananjayraj8210@gmail.com"},
+        "to": [{"email": to_email}],
         "subject": subject,
-        "html": html_content
+        "htmlContent": html_content
     }
     
     try:
         response = requests.post(url, headers=headers, json=payload)
-        if response.status_code == 200:
-            print("✅ Email sent successfully via HTTP API!")
+        if response.status_code in [200, 201, 202, 204]:
+            print("✅ Email sent successfully via Brevo HTTP API!")
         else:
             print(f"❌ Failed to send email: {response.text}")
     except Exception as e:
@@ -134,9 +135,7 @@ async def forgot_password(req: ForgotPasswordRequest, background_tasks: Backgrou
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this email.")
     
-    # Generate 6-digit OTP instead of a URL token
     otp = str(random.randint(100000, 999999))
-    
     otps_collection.update_one(
         {"email": req.email},
         {"$set": {"otp": otp, "type": "password_reset"}},
@@ -154,7 +153,6 @@ async def reset_password(req: ResetPasswordRequest):
         
     hashed_password = pwd_context.hash(req.newPassword)
     
-    # Update password and delete OTP
     profiles_collection.update_one(
         {"email": req.email},
         {"$set": {"password": hashed_password}}
