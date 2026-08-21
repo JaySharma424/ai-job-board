@@ -14,6 +14,8 @@
 [![Deployed on](https://img.shields.io/badge/deployed%20on-Render-46E3B7?logo=render&logoColor=white)](#-deployment)
 [![License](https://img.shields.io/badge/license-MIT-black)](#-license)
 
+**🔗 Live App:** [ai-job-board-frontend.onrender.com](https://ai-job-board-frontend.onrender.com) &nbsp;|&nbsp; **⚙️ API:** [ai-job-board-backend-izko.onrender.com](https://ai-job-board-backend-izko.onrender.com) &nbsp;|&nbsp; **📄 API Docs:** [/docs](https://ai-job-board-backend-izko.onrender.com/docs)
+
 </div>
 
 ---
@@ -21,15 +23,17 @@
 ## 📑 Table of Contents
 
 - [Architecture & System Overview](#-architecture--system-overview)
+- [Tech Stack](#️-tech-stack)
 - [Visual System Workflow](#-visual-system-workflow)
 - [Detailed Data Flow](#-detailed-data-flow)
 - [Core Component Breakdown](#-core-component-breakdown)
 - [Repository Directory Structure](#-repository-directory-structure)
-- [Engineering Workflows](#-engineering-workflows)
+- [Engineering Workflows](#️-engineering-workflows)
+- [Key Engineering Decisions](#-key-engineering-decisions)
 - [Getting Started & Local Setup](#-getting-started--local-setup)
-- [Deployment (Render)](#-deployment)
+- [Deployment (Render)](#️-deployment)
 - [Environment Variables Reference](#-environment-variables-reference)
-- [Roadmap](#-roadmap)
+- [Roadmap](#️-roadmap)
 - [License](#-license)
 
 ---
@@ -42,6 +46,66 @@
 - 🏢 **Recruiter Studio** — deep talent indexing, corporate GST verification, and real-time pipeline analytics.
 
 Both workflows are backed by the same semantic core: job descriptions and resumes are embedded into a shared vector space, allowing meaning-based matching rather than brittle keyword search.
+
+---
+
+## 🛠️ Tech Stack
+
+<table>
+<tr>
+<td valign="top" width="33%">
+
+**Frontend**
+- Next.js 14+ (App Router)
+- TypeScript
+- Tailwind CSS
+- Component-based glassmorphism UI
+
+</td>
+<td valign="top" width="33%">
+
+**Backend**
+- FastAPI (async, Python 3.12+)
+- Uvicorn ASGI server
+- Pydantic data models
+- Modular router architecture
+
+</td>
+<td valign="top" width="33%">
+
+**AI / ML**
+- Google Gemini (`gemini-3.5-flash`)
+- `sentence-transformers/all-MiniLM-L6-v2`
+- FastEmbed (local CPU embeddings)
+- PyPDF (resume text extraction)
+
+</td>
+</tr>
+<tr>
+<td valign="top" width="33%">
+
+**Data & Storage**
+- MongoDB Atlas + PyMongo
+- Qdrant Cloud (vector search)
+
+</td>
+<td valign="top" width="33%">
+
+**Infra & DevOps**
+- Docker (backend containerization)
+- Render (production hosting)
+- Auto-deploy on `main` (CI/CD)
+
+</td>
+<td valign="top" width="33%">
+
+**Third-Party Services**
+- Brevo (transactional email / OTP)
+- Mock Stripe (checkout flow)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -160,56 +224,60 @@ flowchart TB
 
 ```text
 ai-job-board/
-├── app/
-│   ├── AICareerCoach.tsx
-│   ├── CandidateDashboard.tsx
-│   ├── EmployerAuth.tsx
-│   ├── EmployerDashboard.tsx
-│   ├── LoginForm.tsx
-│   ├── RegisterForm.tsx
-│   ├── UpdateUserDetails.tsx
+├── app/                          # Next.js App Router — all client-facing UI
+│   ├── AICareerCoach.tsx         # Floating AI assistant widget, session-aware chat
+│   ├── CandidateDashboard.tsx    # Job feed, multi-filter sidebar, profile & interview hub
+│   ├── EmployerAuth.tsx          # Employer-side authentication flow
+│   ├── EmployerDashboard.tsx     # Recruiter metrics, job publisher, pipeline tracking
+│   ├── LoginForm.tsx             # Secure login & OTP-based password reset
+│   ├── RegisterForm.tsx          # Candidate/employer registration flow
+│   ├── UpdateUserDetails.tsx     # Modal for editing candidate professional attributes
 │   ├── favicon.ico
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── backend/
-│   ├── routers/
+│   ├── globals.css               # Tailwind base styles & design tokens
+│   ├── layout.tsx                # Root layout, fonts, metadata
+│   └── page.tsx                  # Landing page, typewriter hero, portal mode switcher
+│
+├── backend/                      # FastAPI service — all business & AI logic
+│   ├── routers/                  # Modular route handlers, one domain per file
 │   │   ├── __init__.py
-│   │   ├── auth.py
-│   │   ├── chat.py
-│   │   ├── employer.py
-│   │   ├── jobs.py
-│   │   ├── premium.py
-│   │   ├── resume.py
-│   │   └── user.py
-│   ├── Dockerfile
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── normalize_jobs.py
-│   ├── requirements.txt
-│   ├── seed_mongo_fast.py
-│   ├── updated_jobs_data.json
-│   └── vector_db.py
-├── public/
+│   │   ├── auth.py               # Registration, OTP verification, password recovery
+│   │   ├── chat.py                # AI Career Coach conversational backend
+│   │   ├── employer.py           # Employer onboarding, GST validation, job publishing + vector upsert
+│   │   ├── jobs.py               # Job search, keyword parsing, multi-filter logic
+│   │   ├── premium.py            # ATS scoring, cover letter generation, mock checkout
+│   │   ├── resume.py             # PDF parsing & AI resume optimization
+│   │   └── user.py               # Candidate profile CRUD, applications, saved listings
+│   ├── Dockerfile                # Backend container build definition
+│   ├── database.py                # MongoDB client configuration & collection mapping
+│   ├── main.py                    # FastAPI entry point, CORS middleware, startup hooks
+│   ├── models.py                  # Pydantic schemas / data models
+│   ├── normalize_jobs.py          # Batch normalization utility for job listing data
+│   ├── requirements.txt           # Production Python dependencies
+│   ├── seed_mongo_fast.py         # Fast MongoDB seeding script for local/dev data
+│   ├── updated_jobs_data.json     # Seed dataset for job listings
+│   └── vector_db.py               # FastEmbed model loader & Qdrant collection init
+│
+├── public/                       # Static assets served by Next.js
 │   ├── file.svg
 │   ├── globe.svg
 │   ├── next.svg
 │   ├── vercel.svg
 │   └── window.svg
-├── scripts/
-│   ├── enrich/jobs.mjs
-│   └── seed.mjs
+│
+├── scripts/                      # One-off data & maintenance scripts
+│   ├── enrich/jobs.mjs           # Job listing enrichment script
+│   └── seed.mjs                  # Database seeding script (Node)
+│
 ├── .gitignore
-├── Dockerfile
+├── Dockerfile                    # Root-level container build (frontend or unified build)
 ├── README.md
-├── eslint.config.mjs
-├── next.config.ts
+├── eslint.config.mjs             # Linting rules
+├── next.config.ts                # Next.js build configuration
 ├── package-lock.json
 ├── package.json
-├── postcss.config.mjs
-├── tsconfig.json
-└── workflow-diagram.png
+├── postcss.config.mjs            # Tailwind/PostCSS pipeline config
+├── tsconfig.json                 # TypeScript compiler configuration
+└── workflow-diagram.png          # Exported architecture diagram
 ```
 
 ---
@@ -232,6 +300,20 @@ ai-job-board/
 
 - To prevent email failures caused by cloud hosting firewalls blocking traditional SMTP ports, all outbound notifications utilize **Brevo's REST API** over standard HTTPS.
 - Credentials and tokens are isolated through environment variables (`MONGODB_URI`, `QDRANT_API_KEY`, `GEMINI_API_KEY`, `BREVO_API_KEY`) and are never committed to source control.
+
+---
+
+## 🧠 Key Engineering Decisions
+
+Notable trade-offs made while building this system, and the reasoning behind each:
+
+| Decision | Why |
+| --- | --- |
+| **Local embeddings (FastEmbed) instead of a hosted embedding API** | Removes per-request network latency and cost for the highest-volume operation in the system (indexing every job + resume). Runs on CPU, so no GPU dependency in production. |
+| **Deterministic UUIDs (`uuid.uuid5`) for vector upserts** | Re-publishing or editing a job re-generates the *same* vector ID instead of creating a duplicate in Qdrant — makes indexing idempotent and prevents index drift over repeated writes. |
+| **Search reads from MongoDB, not Qdrant, for filter-based queries** | Vector search is reserved for semantic matching (resume-to-job); structured filtering (location, category, salary) stays in MongoDB where compound indexes are cheaper and results are exact, not approximate. |
+| **Brevo REST API instead of SMTP** | Many PaaS providers block outbound SMTP ports by default. Using HTTPS for transactional email avoids a class of production deployment failures entirely. |
+| **Tiered vector retrieval (2 vs. 10 matches)** | Keeps Gemini token usage — and therefore cost — proportional to subscription tier, rather than running the same expensive LLM reasoning pass for every user regardless of plan. |
 
 ---
 
@@ -271,8 +353,10 @@ python main.py
 
 ### 3. Set Up the Frontend
 
+The Next.js app lives at the repository root (`app/`), so return to the project root before installing:
+
 ```bash
-cd ../frontend
+cd ..
 npm install
 npm run dev
 ```
@@ -302,11 +386,11 @@ Job Dekho runs in production on **[Render](https://render.com)**, using two inde
    `MONGODB_URI`, `QDRANT_URL`, `QDRANT_API_KEY`, `GEMINI_API_KEY`, `BREVO_API_KEY`.
 6. Set the **Instance Type** based on load. Note that the `sentence-transformers` embedding model is loaded into memory on startup — the free/starter instance tier may see slower cold starts as a result; a paid instance with more RAM is recommended for production traffic.
 7. Enable **Auto-Deploy** on the `main` branch so pushes trigger redeploys automatically.
-8. Once live, note the generated backend URL (e.g. `https://job-dekho-api.onrender.com`) — this is what the frontend will call.
+8. **Live backend:** [`https://ai-job-board-backend-izko.onrender.com`](https://ai-job-board-backend-izko.onrender.com) — this is what the frontend calls.
 
 ### Frontend — Render Web Service (Next.js)
 
-1. Choose **New → Web Service** again, same repository, and set the **Root Directory** to `frontend`.
+1. Choose **New → Web Service** again, same repository, and leave the **Root Directory** blank (the Next.js `app/` lives at the repo root).
 2. **Build Command:**
    ```bash
    npm install && npm run build
@@ -315,15 +399,16 @@ Job Dekho runs in production on **[Render](https://render.com)**, using two inde
    ```bash
    npm run start
    ```
-4. Add an environment variable pointing the frontend at the deployed backend, e.g.:
+4. Add an environment variable pointing the frontend at the deployed backend:
    ```env
-   NEXT_PUBLIC_API_BASE_URL=https://job-dekho-api.onrender.com
+   NEXT_PUBLIC_API_BASE_URL=https://ai-job-board-backend-izko.onrender.com
    ```
 5. Enable **Auto-Deploy** on `main` for the frontend service as well.
+6. **Live frontend:** [`https://ai-job-board-frontend.onrender.com`](https://ai-job-board-frontend.onrender.com)
 
 ### Post-Deployment Checklist
 
-- ✅ Confirm CORS in `main.py` allows the deployed frontend origin (not just `localhost:3000`).
+- ✅ Confirm CORS in `main.py` allows `https://ai-job-board-frontend.onrender.com` as an allowed origin (not just `localhost:3000`).
 - ✅ Confirm the Qdrant Cloud cluster and MongoDB Atlas cluster both allow inbound connections from Render's IP ranges (or are set to allow all, if using connection-string auth only).
 - ✅ Verify Brevo API keys are the **production** (not sandbox) keys before going live, since OTP emails are user-facing.
 - ✅ Hit `/docs` on the deployed backend URL to confirm the FastAPI OpenAPI schema and all routers registered correctly.
