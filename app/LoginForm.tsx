@@ -16,6 +16,11 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onGuestL
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Dynamic API Base URL based on runtime hostname (fixes production network errors)
+  const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : 'https://ai-job-board-backend-izko.onrender.com';
+
   // Check URL parameters for password reset link handling
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -34,19 +39,19 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onGuestL
     setSuccess('');
 
     if (mode === 'forgot') {
-      const res = await fetch('http://localhost:8000/api/auth/forgot-password', {
+      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
       const data = await res.json();
       if (data.success) setSuccess(data.message);
-      else setError(data.error);
+      else setError(data.error || data.detail);
       return;
     }
 
     if (mode === 'updatePassword') {
-      const res = await fetch('http://localhost:8000/api/auth/reset-password', {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, resetToken, newPassword: password })
@@ -59,14 +64,14 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onGuestL
           window.history.replaceState({}, document.title, window.location.pathname); 
         }, 2000);
       } else {
-        setError(data.error);
+        setError(data.error || data.detail);
       }
       return;
     }
 
     // Standard Login
     try {
-      const res = await fetch('http://localhost:8000/api/auth/login', {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -76,7 +81,7 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onGuestL
       if (data.success) onLoginSuccess(data.email);
       else setError(data.detail || data.error || 'Authentication failed');
     } catch (err) {
-      setError('Network error. Is the backend running?');
+      setError('Network error connecting to backend.');
     }
   };
 
