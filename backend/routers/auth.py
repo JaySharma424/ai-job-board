@@ -47,7 +47,8 @@ def send_email_via_gmail(to_email: str, subject: str, html_content: str):
     msg.attach(MIMEText(html_content, "html"))
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 587) as server:
+            server.starttls()
             server.login(sender_email, sender_password.replace(" ", ""))
             server.sendmail(sender_email, to_email, msg.as_string())
     except Exception as e:

@@ -112,11 +112,12 @@ def send_email_via_gmail(to_email: str, subject: str, html_content: str):
         return
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"AI Naukri Recruiter <{sender_email}>"
+    msg["From"] = f"Job Dekho Recruiter <{sender_email}>"
     msg["To"] = to_email
     msg.attach(MIMEText(html_content, "html"))
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 587) as server:
+            server.starttls()
             server.login(sender_email, sender_password.replace(" ", ""))
             server.sendmail(sender_email, to_email, msg.as_string())
     except Exception as e:
@@ -126,7 +127,7 @@ def send_employer_otp_email(email: str, otp: str, is_login: bool = False):
     action_text = "Login Verification" if is_login else "Account Registration"
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center;">
-        <h2 style="color: #f59e0b;">AI Naukri Recruiter Suite</h2>
+        <h2 style="color: #f59e0b;">Job Dekho Recruiter Suite</h2>
         <p style="color: #475569;">Your 6-digit corporate {action_text} code is:</p>
         <div style="background-color: #fffbeb; padding: 20px; border-radius: 8px; margin: 20px 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #b45309;">
             {otp}
@@ -134,7 +135,7 @@ def send_employer_otp_email(email: str, otp: str, is_login: bool = False):
         <p style="font-size: 12px; color: #94a3b8;">This code expires in 10 minutes.</p>
     </div>
     """
-    send_email_via_gmail(email, f"AI Naukri Recruiter OTP - {action_text}", html)
+    send_email_via_gmail(email, f"Job Dekho Recruiter OTP - {action_text}", html)
 
 # ----------------------------------------------------
 # ENDPOINTS
