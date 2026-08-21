@@ -10,7 +10,12 @@ type Props = {
   onLogout: () => void;
 };
 
-// --- Helper function to turn raw text and markdown into beautiful React HTML ---
+// Dynamic API Base URL
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://ai-job-board-backend-izko.onrender.com');
+
 const formatBold = (str: string): ReactNode[] => {
   const parts = str.split(/\*\*(.*?)\*\*/g);
   return parts.map((part, i) =>
@@ -57,7 +62,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // State for AI Recommended Jobs and Match Tier
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
   const [matchTier, setMatchTier] = useState<'Free' | 'Pro'>('Free');
 
@@ -66,7 +70,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const [coverLetter, setCoverLetter] = useState('');
   const [generatingLetter, setGeneratingLetter] = useState(false);
   
-  // Premium State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [requestingKit, setRequestingKit] = useState(false);
@@ -74,18 +77,15 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const [atsScore, setAtsScore] = useState<{score: number, feedback: string} | null>(null);
   const [scoring, setScoring] = useState(false);
 
-  // Interview Hub / Prep State
   const [prepTab, setPrepTab] = useState<'applied' | 'shortlisted' | 'saved'>('applied');
   const [activePrepJob, setActivePrepJob] = useState<any | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<string>('');
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
 
-  // Notification State
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
-  // Filters State
   const [sourceFilter, setSourceFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [jobTypeFilter, setJobTypeFilter] = useState('All');
@@ -104,11 +104,9 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     skills: ['React', 'Python', 'Machine Learning', 'Next.js'], bio: 'Add a brief summary of your professional background and career goals.', is_premium: false
   });
 
-  // Added Job Dekho as primary source filter
   const uniqueSources = ['Job Dekho', 'LinkedIn', 'Naukri', 'Indeed', 'Internshala', 'Glassdoor', 'Foundit', 'BeBee', 'Shine'];
   const uniqueLocations = ['Bengaluru', 'Pune', 'Hyderabad', 'Mumbai', 'Noida', 'Gurugram', 'Chennai', 'Delhi'];
   const uniqueSkills = ['Python', 'React', 'Java', 'SQL', 'Node.js', 'AWS', 'Machine Learning'];
-
   const quickSearchOptions = ['Software Engineer', 'Machine Learning', 'React.js', 'Data Scientist', 'Remote', 'Internship'];
 
   const normalizePlatform = (via: string) => {
@@ -125,7 +123,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
 
   useEffect(() => {
     if (user && !user.isGuest) {
-      fetch(`http://localhost:8000/api/user/profile?email=${user.email}`)
+      fetch(`${API_BASE}/api/user/profile?email=${user.email}`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.data) {
@@ -135,15 +133,15 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
           }
         });
 
-      fetch(`http://localhost:8000/api/user/applications?email=${user.email}`)
+      fetch(`${API_BASE}/api/user/applications?email=${user.email}`)
         .then(res => res.json())
         .then(data => { if (data.success) setAppliedJobs(data.data); });
 
-      fetch(`http://localhost:8000/api/user/saved?email=${user.email}`)
+      fetch(`${API_BASE}/api/user/saved?email=${user.email}`)
         .then(res => res.json())
         .then(data => { if (data.success) setSavedJobs(data.data); });
 
-      fetch(`http://localhost:8000/api/user/notifications?email=${user.email}`)
+      fetch(`${API_BASE}/api/user/notifications?email=${user.email}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -157,7 +155,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const markNotificationsAsRead = async () => {
     if (unreadCount === 0) return;
     setUnreadCount(0);
-    await fetch('http://localhost:8000/api/user/notifications/read', {
+    await fetch(`${API_BASE}/api/user/notifications/read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: user.email })
@@ -171,7 +169,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
       source: sourceFilter, category: categoryFilter, jobType: jobTypeFilter, expYears: expYearsFilter, skill: skillFilter, location: locationFilter, datePosted: datePostedFilter, workplaceType: workplaceFilter, employmentType: employmentTypeFilter, search: submittedSearch, page: '1'
     });
 
-    fetch(`http://localhost:8000/api/jobs?${queryParams.toString()}`)
+    fetch(`${API_BASE}/api/jobs?${queryParams.toString()}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -190,7 +188,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     const nextPage = page + 1;
     try {
       const queryParams = new URLSearchParams({ source: sourceFilter, category: categoryFilter, jobType: jobTypeFilter, expYears: expYearsFilter, skill: skillFilter, location: locationFilter, datePosted: datePostedFilter, workplaceType: workplaceFilter, employmentType: employmentTypeFilter, search: submittedSearch, page: String(nextPage) });
-      const res = await fetch(`http://localhost:8000/api/jobs?${queryParams.toString()}`);
+      const res = await fetch(`${API_BASE}/api/jobs?${queryParams.toString()}`);
       const data = await res.json();
       if (data.success) {
         const moreJobs = data.data.map((job: any) => ({ ...job, normalizedSource: normalizePlatform(job.via) }));
@@ -206,31 +204,21 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     setSubmittedSearch(searchQuery);
   };
 
-  // Enhanced Interactive Quick Filter Toggle Logic
   const handleQuickSearch = (term: string) => {
     if (searchQuery === term) {
-      // Toggle off if already selected
       setSearchQuery('');
       setSubmittedSearch('');
     } else {
-      // Toggle on
       setSearchQuery(term);
       setSubmittedSearch(term);
     }
   };
 
   const resetAllFilters = () => {
-    setSourceFilter('All');
-    setCategoryFilter('All');
-    setJobTypeFilter('All');
-    setExpYearsFilter('All');
-    setSkillFilter('All');
-    setLocationFilter('All');
-    setDatePostedFilter('All');
-    setWorkplaceFilter('All');
-    setEmploymentTypeFilter('All');
-    setSubmittedSearch('');
-    setSearchQuery('');
+    setSourceFilter('All'); setCategoryFilter('All'); setJobTypeFilter('All');
+    setExpYearsFilter('All'); setSkillFilter('All'); setLocationFilter('All');
+    setDatePostedFilter('All'); setWorkplaceFilter('All'); setEmploymentTypeFilter('All');
+    setSubmittedSearch(''); setSearchQuery('');
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +236,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     }
     
     try {
-      const response = await fetch('http://localhost:8000/api/resume', { 
+      const response = await fetch(`${API_BASE}/api/resume`, { 
         method: 'POST', 
         body: formData 
       });
@@ -264,7 +252,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
         }
 
         if (!user.isGuest) {
-          await fetch('http://localhost:8000/api/user/profile', { 
+          await fetch(`${API_BASE}/api/user/profile`, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ ...profileData, email: user.email, resume_text: parsedText, resume_filename: file.name }) 
@@ -283,7 +271,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const handleInlineSaveProfile = async () => {
     if (user.isGuest) return;
     try {
-      await fetch('http://localhost:8000/api/user/profile', { 
+      await fetch(`${API_BASE}/api/user/profile`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ ...profileData, email: user.email, resume_text: extractedResumeText, resume_filename: resumeFileName }) 
@@ -301,7 +289,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     const jobId = job._id || job.job_id;
     const payload = { email: user.email, job_id: jobId, title: job.title, company_name: job.company_name, location: job.location || 'Remote' };
     try {
-      const res = await fetch('http://localhost:8000/api/user/saved/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch(`${API_BASE}/api/user/saved/toggle`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) {
         if (data.action === 'removed') setSavedJobs(savedJobs.filter(j => j.job_id !== jobId));
@@ -322,7 +310,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     };
 
     try {
-      const res = await fetch('http://localhost:8000/api/resume/cover-letter', { 
+      const res = await fetch(`${API_BASE}/api/resume/cover-letter`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(payload) 
@@ -343,7 +331,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const submitApplication = async () => {
     const payload = { email: user.email, job_id: selectedJob._id || selectedJob.job_id, title: selectedJob.title, company_name: selectedJob.company_name, location: selectedJob.location || 'Remote', appliedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), status: 'Under Review' };
     try {
-      const res = await fetch('http://localhost:8000/api/user/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch(`${API_BASE}/api/user/applications`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if ((await res.json()).success) {
         setAppliedJobs([payload, ...appliedJobs]);
         alert(`Successfully applied!`);
@@ -355,7 +343,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
   const handleWithdrawApplication = async (jobId: string) => {
     if (user.isGuest || !window.confirm("Withdraw application?")) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/user/applications?email=${user.email}&job_id=${jobId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/user/applications?email=${user.email}&job_id=${jobId}`, { method: 'DELETE' });
       if ((await res.json()).success) { setAppliedJobs(appliedJobs.filter(j => j.job_id !== jobId)); alert("Withdrawn."); }
     } catch (err) {}
   };
@@ -374,7 +362,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     setProcessingPayment(true);
     setTimeout(async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/premium/checkout', { 
+        const res = await fetch(`${API_BASE}/api/premium/checkout`, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify({ email: user.email, token: "tok_mockStripe123" }) 
@@ -404,7 +392,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     if (!extractedResumeText) return alert("Upload resume first.");
     setRequestingKit(true);
     try {
-      const res = await fetch('http://localhost:8000/api/premium/interview-kit', { 
+      const res = await fetch(`${API_BASE}/api/premium/interview-kit`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ email: user.email, job_title: jobTitle, company_name: companyName, job_description: jobDesc || "Standard role requirements", resume_text: extractedResumeText }) 
@@ -422,7 +410,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     setActivePrepJob(job);
     setGeneratedQuestions('');
     try {
-      const res = await fetch('http://localhost:8000/api/premium/top-technical-questions', {
+      const res = await fetch(`${API_BASE}/api/premium/top-technical-questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -455,7 +443,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     if (!extractedResumeText) return alert("Upload resume first.");
     setScoring(true);
     try {
-      const res = await fetch('http://localhost:8000/api/premium/ats-score', { 
+      const res = await fetch(`${API_BASE}/api/premium/ats-score`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
@@ -490,7 +478,7 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
     if (!extractedResumeText) return alert("Upload resume first.");
     setAutoApplying(true);
     try {
-      const res = await fetch('http://localhost:8000/api/premium/auto-apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, job_id: selectedJob._id || selectedJob.job_id, job_title: selectedJob.title, company_name: selectedJob.company_name, location: selectedJob.location || 'Remote', job_description: selectedJob.description || selectedJob.formattedDescription, resume_text: extractedResumeText }) });
+      const res = await fetch(`${API_BASE}/api/premium/auto-apply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, job_id: selectedJob._id || selectedJob.job_id, job_title: selectedJob.title, company_name: selectedJob.company_name, location: selectedJob.location || 'Remote', job_description: selectedJob.description || selectedJob.formattedDescription, resume_text: extractedResumeText }) });
       const data = await res.json();
       if (data.success) {
         setAppliedJobs([{ email: user.email, job_id: selectedJob._id || selectedJob.job_id, title: selectedJob.title, company_name: selectedJob.company_name, location: selectedJob.location || 'Remote', appliedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), status: 'Auto-Applied ⚡' }, ...appliedJobs]);
@@ -595,7 +583,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
                   <button onClick={resetAllFilters} className="text-xs text-blue-600 font-bold hover:underline">Clear</button>
                 </div>
                 
-                {/* Portal / Source Filter added here */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Job Portal</label>
                   <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="w-full text-sm p-2 border border-slate-200 rounded-lg outline-none bg-slate-50 cursor-pointer">
@@ -621,7 +608,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
                 </form>
               </div>
 
-              {/* Enhanced Interactive Quick Filters */}
               <div className="flex flex-wrap items-center gap-2 -mt-2 mb-2 px-1">
                 <span className="text-[11px] font-bold text-slate-400 mr-1">Suggested:</span>
                 {quickSearchOptions.map(term => (
@@ -642,7 +628,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               {loading ? (
                 <div className="text-center py-20 text-slate-400 font-semibold animate-pulse">Scanning available opportunities...</div>
               ) : jobs.length === 0 ? (
-                /* Enhanced Empty State when filters return 0 jobs */
                 <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center flex flex-col items-center justify-center gap-3 animate-in fade-in">
                   <div className="text-5xl mb-2">🔍</div>
                   <h3 className="text-xl font-bold text-slate-800">No Jobs Found</h3>
@@ -963,7 +948,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
                   </div>
                 </div>
 
-                {/* Placeholder Cards for Future Sections */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex justify-between items-center">
                   <h3 className="font-black text-slate-900 text-base">Employment</h3>
                   <button className="text-blue-600 font-bold text-xs hover:underline">Add employment</button>
@@ -1047,7 +1031,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               </div>
             </div>
 
-            {/* Sub-tabs for Applied, Shortlisted, Saved */}
             <div className="flex gap-3 border-b border-slate-200 pb-4">
               <button onClick={() => setPrepTab('applied')} className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${prepTab === 'applied' ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-600 border border-slate-200'}`}>Applied Jobs ({appliedJobs.length})</button>
               <button onClick={() => setPrepTab('shortlisted')} className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${prepTab === 'shortlisted' ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-600 border border-slate-200'}`}>Shortlisted Jobs</button>
@@ -1090,7 +1073,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
                       </div>
                     </div>
 
-                    {/* Expanded LLM Generated Questions Box */}
                     {activePrepJob && (activePrepJob.job_id === job.job_id || activePrepJob._id === job._id) && (
                       <div className="bg-indigo-50/60 border border-indigo-100 p-6 rounded-2xl animate-in fade-in duration-200">
                         <h4 className="font-black text-indigo-950 text-sm mb-3 flex items-center gap-2">
@@ -1115,12 +1097,10 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
         )}
       </div>
 
-      {/* --- NAUKRI STYLE FOOTER --- */}
       <footer className="w-full bg-white border-t border-slate-200 mt-auto">
         <div className="max-w-7xl mx-auto px-6 py-12">
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
-            {/* Logo and Connect */}
             <div className="lg:col-span-1 flex flex-col gap-6">
               <h2 className="text-2xl font-black text-blue-600 tracking-tighter">Job Dekho</h2>
               <div className="flex flex-col gap-3">
@@ -1134,7 +1114,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               </div>
             </div>
 
-            {/* Links Column 1 */}
             <div className="lg:col-span-1">
               <ul className="flex flex-col gap-3 text-xs text-slate-600 font-medium">
                 <li className="hover:text-blue-600 cursor-pointer">About us</li>
@@ -1145,7 +1124,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               </ul>
             </div>
 
-            {/* Links Column 2 */}
             <div className="lg:col-span-1">
               <ul className="flex flex-col gap-3 text-xs text-slate-600 font-medium">
                 <li className="hover:text-blue-600 cursor-pointer">Help center</li>
@@ -1155,7 +1133,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               </ul>
             </div>
 
-            {/* Links Column 3 */}
             <div className="lg:col-span-1">
               <ul className="flex flex-col gap-3 text-xs text-slate-600 font-medium">
                 <li className="hover:text-blue-600 cursor-pointer">Privacy policy</li>
@@ -1165,7 +1142,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
               </ul>
             </div>
 
-            {/* App Promotion */}
             <div className="lg:col-span-1">
               <div className="border border-slate-200 p-5 rounded-2xl bg-white shadow-sm flex flex-col gap-3">
                 <h3 className="font-black text-slate-800 text-sm">Apply on the go</h3>
@@ -1202,7 +1178,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
         </div>
       </footer>
 
-      {/* RENDER THE UPDATE PROFILE MODAL */}
       <UpdateUserDetails 
         isOpen={showUpdateModal} 
         onClose={() => setShowUpdateModal(false)} 
@@ -1211,7 +1186,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
         onSuccess={(updatedData) => setProfileData(updatedData)}
       />
 
-      {/* MODALS */}
       {selectedJob && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1258,7 +1232,6 @@ export default function CandidateDashboard({ user, onSwitchMode, onLogout }: Pro
         </div>
       )}
 
-      {/* PROFESSIONAL MOCK STRIPE PAYMENT GATEWAY MODAL */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[200] animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative text-center">
@@ -1321,8 +1294,13 @@ function CandidateAnalyticsView({ email, resumeText }: { email: string; resumeTe
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Dynamic API Base URL
+  const API_BASE = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : 'https://ai-job-board-backend-izko.onrender.com';
+
   useEffect(() => {
-    fetch('http://localhost:8000/api/user/analytics', {
+    fetch(`${API_BASE}/api/user/analytics`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, resume_text: resumeText })
@@ -1341,7 +1319,6 @@ function CandidateAnalyticsView({ email, resumeText }: { email: string; resumeTe
     <div className="max-w-5xl mx-auto flex flex-col gap-8">
       <h2 className="text-2xl font-black text-slate-900">Career & Application Analytics</h2>
 
-      {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-xs font-bold text-slate-400 uppercase">Total Applied</p>
@@ -1361,7 +1338,6 @@ function CandidateAnalyticsView({ email, resumeText }: { email: string; resumeTe
         </div>
       </div>
 
-      {/* AI Skill Gap Insights Card */}
       <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-8 rounded-3xl shadow-lg flex flex-col gap-6">
         <div className="flex items-center gap-3">
           <span className="text-3xl">💡</span>

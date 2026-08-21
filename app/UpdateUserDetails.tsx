@@ -22,11 +22,16 @@ type Props = {
   onSuccess: (updatedData: ProfileData) => void;
 };
 
+// Dynamic API Base URL
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://ai-job-board-backend-izko.onrender.com');
+
 export default function UpdateUserDetails({ isOpen, onClose, userEmail, initialData, onSuccess }: Props) {
   const [formData, setFormData] = useState<ProfileData>(initialData);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync state if initialData changes while modal is closed
   useEffect(() => {
     setFormData(initialData);
   }, [initialData]);
@@ -37,7 +42,7 @@ export default function UpdateUserDetails({ isOpen, onClose, userEmail, initialD
     setIsSaving(true);
     try {
       const payload = { ...formData, email: userEmail };
-      const res = await fetch('http://localhost:8000/api/user/profile', {
+      const res = await fetch(`${API_BASE}/api/user/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -45,7 +50,7 @@ export default function UpdateUserDetails({ isOpen, onClose, userEmail, initialD
       
       const data = await res.json();
       if (data.success) {
-        onSuccess(formData); // Pass the updated data back to dashboard
+        onSuccess(formData); 
         onClose();
       } else {
         alert(data.detail || 'Failed to update profile.');
@@ -61,7 +66,6 @@ export default function UpdateUserDetails({ isOpen, onClose, userEmail, initialD
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         
-        {/* Modal Header */}
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
           <div>
             <h2 className="text-xl font-black text-slate-900">Update Basic Details</h2>
@@ -75,7 +79,6 @@ export default function UpdateUserDetails({ isOpen, onClose, userEmail, initialD
           </button>
         </div>
         
-        {/* Form Body */}
         <div className="p-8 overflow-y-auto flex flex-col gap-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="flex flex-col gap-1.5">
@@ -126,7 +129,6 @@ export default function UpdateUserDetails({ isOpen, onClose, userEmail, initialD
           </div>
         </div>
 
-        {/* Modal Footer */}
         <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-[2rem]">
           <button 
             onClick={onClose} 

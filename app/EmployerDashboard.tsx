@@ -8,6 +8,12 @@ type Props = {
   onLogout: () => void;
 };
 
+// Dynamic API Base URL
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://ai-job-board-backend-izko.onrender.com');
+
 export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Props) {
   const [currentTab, setCurrentTab] = useState<'overview' | 'post-job' | 'applicants' | 'listings' | 'profile'>('overview');
   
@@ -44,9 +50,8 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
   });
   const [posting, setPosting] = useState(false);
 
-  // Fetch Dashboard Stats Function
   const fetchAnalytics = () => {
-    fetch(`http://localhost:8000/api/employer/analytics?email=${user.email}`)
+    fetch(`${API_BASE}/api/employer/analytics?email=${user.email}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -55,11 +60,8 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
       });
   };
 
-  // Fetch Jobs List Function
   const fetchActiveJobs = () => {
-    // Ideally this queries only this employer's jobs.
-    // For now, we reuse the general jobs endpoint.
-    fetch('http://localhost:8000/api/jobs?source=All&page=1')
+    fetch(`${API_BASE}/api/jobs?source=All&page=1`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -69,8 +71,7 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
   };
 
   useEffect(() => {
-    // 1. Fetch profile
-    fetch(`http://localhost:8000/api/employer/profile?email=${user.email}`)
+    fetch(`${API_BASE}/api/employer/profile?email=${user.email}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -79,7 +80,6 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
         }
       });
 
-    // 2. Fetch Dashboard Numbers & Active Jobs
     fetchAnalytics();
     fetchActiveJobs();
   }, [user]);
@@ -87,14 +87,14 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:8000/api/employer/profile', {
+      const res = await fetch(`${API_BASE}/api/employer/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email, ...profileData })
       });
       if ((await res.json()).success) {
         alert("🏢 Company profile and GST details updated successfully!");
-        fetchAnalytics(); // Refresh GST in overview if changed
+        fetchAnalytics(); 
       }
     } catch (err) {
       alert("Failed to update profile.");
@@ -106,7 +106,7 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
     if (!newJob.title || !newJob.description) return alert("Please fill in all required fields.");
     setPosting(true);
     try {
-      const res = await fetch('http://localhost:8000/api/employer/jobs', {
+      const res = await fetch(`${API_BASE}/api/employer/jobs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -118,14 +118,9 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
       const data = await res.json();
       if (data.success || res.ok) {
         alert("🎉 Job successfully published and saved to database!");
-        
-        // Reset the form
         setNewJob({ title: '', company_name: profileData.company_name, location: profileData.location, minExperienceRequired: 'Fresher', description: '', skills: '' });
-        
-        // INSTANT UI UPDATE: Fetch new analytics & jobs immediately
         fetchAnalytics(); 
         fetchActiveJobs();
-        
         setCurrentTab('overview');
       } else {
         alert("Failed to post job.");
@@ -139,7 +134,6 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
 
   return (
     <main className="min-h-screen bg-[#f8f9fa] font-sans text-slate-800 pb-32">
-      {/* RECRUITER NAVIGATION BAR */}
       <nav className="bg-slate-900 text-white shadow-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
@@ -166,10 +160,8 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
         </div>
       </nav>
 
-      {/* RECRUITER WORKSPACE CONTENT */}
       <div className="max-w-7xl mx-auto px-6 mt-8">
         
-        {/* TAB 1: OVERVIEW */}
         {currentTab === 'overview' && (
           <div className="flex flex-col gap-8 animate-in fade-in duration-200">
             <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-8 rounded-3xl text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -188,17 +180,14 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Job Postings</span>
-                {/* DYNAMIC METRIC INJECTED HERE */}
                 <p className="text-3xl font-black text-blue-600 mt-1">{metrics.active_postings}</p>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Applications</span>
-                {/* DYNAMIC METRIC INJECTED HERE */}
                 <p className="text-3xl font-black text-indigo-600 mt-1">{metrics.total_applications}</p>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">AI Shortlisted</span>
-                {/* DYNAMIC METRIC INJECTED HERE */}
                 <p className="text-3xl font-black text-emerald-600 mt-1">{metrics.shortlisted}</p>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1">
@@ -209,7 +198,6 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
           </div>
         )}
 
-        {/* TAB 2: POST NEW JOB */}
         {currentTab === 'post-job' && (
           <div className="max-w-3xl mx-auto bg-white p-8 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in duration-200">
             <div className="mb-6 border-b border-slate-100 pb-4">
@@ -257,7 +245,6 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
           </div>
         )}
 
-        {/* TAB 3: ACTIVE LISTINGS */}
         {currentTab === 'listings' && (
           <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-in fade-in duration-200">
             <h2 className="text-2xl font-black text-slate-900">Active Job Postings</h2>
@@ -281,7 +268,6 @@ export default function EmployerDashboard({ user, onSwitchMode, onLogout }: Prop
           </div>
         )}
 
-        {/* TAB 4: COMPANY & EMPLOYER PROFILE SETTINGS */}
         {currentTab === 'profile' && (
           <div className="max-w-3xl mx-auto bg-white p-8 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in duration-200">
             <div className="mb-6 border-b border-slate-100 pb-4">
