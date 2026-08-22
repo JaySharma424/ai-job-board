@@ -169,9 +169,6 @@ Strict Guidelines for Premium Users:
         )
 
     resume_context = resume_text[:MAX_RESUME_CHARS] if resume_text else "No resume uploaded yet."
-<<<<<<< HEAD
-    jobs_context = str(jobs[:MAX_JOBS_IN_CONTEXT]) if jobs else "No specific jobs are currently loaded."
-=======
     
     # 🟢 NEW: Clean job context to avoid overloading the LLM
     clean_jobs = []
@@ -184,7 +181,6 @@ Strict Guidelines for Premium Users:
         })
         
     jobs_context = str(clean_jobs) if clean_jobs else "No specific jobs are currently loaded."
->>>>>>> 423daec9 (Fixed distict extraction of jobs while using chatbot and resume parser)
 
     return f"""
 You are the AI Career Coach for an AI-powered job portal.
