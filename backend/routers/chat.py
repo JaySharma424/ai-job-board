@@ -14,7 +14,6 @@ router = APIRouter(
     tags=["Chat"],
 )
 
-# Corrected Default Chat Model
 GEMINI_MODEL = os.getenv(
     "GEMINI_CHAT_MODEL",
     "gemini-3.5-flash",
@@ -147,9 +146,9 @@ Your standard is uncompromising, rigorous, and directly tailored to top-tier tec
 
 Strict Guidelines for Premium Users:
 1. **Active Mock Interviews**: When the user asks for practice or a mock interview, adopt the persona of a strict hiring manager. Ask **one challenging question at a time**. Wait for their answer before evaluating.
-2. **Strict STAR Method Enforcement**: For behavioral answers, evaluate them using the STAR framework (Situation, Task, Action, Result). Scrutinize the "Action" section—require personal ownership, quantifiable metrics, and first-person active verbs ("I architected", not "We built").
-3. **System Design & Technical Probing**: For engineering/technical questions, push the candidate on scalability bottlenecks, trade-offs (e.g., consistency vs. availability), cost implications, and failure recovery.
-4. **Zero Fluff**: Eliminate generic advice ("Be confident", "Dress well"). Instead, provide tactical delivery fixes ("Move your impact metric to the first sentence", "Cut the background story by 50%").
+2. **Strict STAR Method Enforcement**: For behavioral answers, evaluate them using the STAR framework (Situation, Task, Action, Result). 
+3. **System Design & Technical Probing**: For engineering/technical questions, push the candidate on scalability bottlenecks, trade-offs, cost implications, and failure recovery.
+4. **Zero Fluff**: Eliminate generic advice. Provide tactical delivery fixes.
 """
     else:
         adaptive_profile = (
@@ -161,54 +160,38 @@ Strict Guidelines for Premium Users:
 - Be practical and personalized.
 - Avoid generic career advice.
 - Give concrete next steps.
-- Do not invent information.
             """.strip()
         )
 
-    resume_context = (
-        resume_text[:MAX_RESUME_CHARS]
-        if resume_text
-        else "No resume uploaded yet."
-    )
-
-    jobs_context = (
-        str(jobs[:MAX_JOBS_IN_CONTEXT])
-        if jobs
-        else "No specific jobs are currently loaded."
-    )
+    resume_context = resume_text[:MAX_RESUME_CHARS] if resume_text else "No resume uploaded yet."
+    jobs_context = str(jobs[:MAX_JOBS_IN_CONTEXT]) if jobs else "No specific jobs are currently loaded."
 
     return f"""
 You are the AI Career Coach for an AI-powered job portal.
 
-Your job is to provide practical career guidance based on:
-1. The user's current question.
-2. Their resume when available.
-3. The available job listings when relevant.
-4. The conversation history.
-5. The adaptive coaching profile learned from previous interactions.
+CRITICAL RAG FAITHFULNESS RULES (ANTI-HALLUCINATION):
+1. You MUST answer the user's question using ONLY the provided Candidate Resume, Available Jobs, and Retrieved Contexts.
+2. Do NOT hallucinate, invent, or assume any facts, numbers, skills, degrees, or job requirements that are not explicitly stated in the contexts below.
+3. If the provided context does not contain the answer, explicitly state: "I don't have enough information based on the provided context."
 
 ==================================================
-ADAPTIVE COACHING PROFILE & GUIDELINES
+ADAPTIVE COACHING PROFILE
 ==================================================
-
 {adaptive_profile}
 
 ==================================================
 CANDIDATE RESUME
 ==================================================
-
 {resume_context}
 
 ==================================================
 AVAILABLE JOBS
 ==================================================
-
 {jobs_context}
 
 ==================================================
 CURRENT USER QUESTION
 ==================================================
-
 {user_message}
 """.strip()
 
