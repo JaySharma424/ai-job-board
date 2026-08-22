@@ -4,8 +4,9 @@ import random
 import uuid
 import re
 import requests
+import google.generativeai as genai
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Header
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any
 
@@ -23,6 +24,7 @@ router = APIRouter(
     tags=["Employer & Recruiter Portal"]
 )
 
+# --- SCHEMAS ---
 class EmployerRegisterPayload(BaseModel):
     email: EmailStr
     password: str
@@ -62,6 +64,7 @@ class ResetPasswordRequest(BaseModel):
     otp: str
     newPassword: str
 
+# --- UTILITIES ---
 def fast_clean_description(text: str) -> str:
     if not text or not isinstance(text, str):
         return ""
@@ -84,52 +87,20 @@ def build_job_text(job: dict) -> str:
     return f"Title: {job.get('title', '')}\nCompany: {job.get('company_name', '')}\nLocation: {location}\nExperience: {exp_str}\nSkills: {skills_str}\nDescription: {desc}".strip()
 
 def send_email_via_api(to_email: str, subject: str, html_content: str):
-    """Bypasses Render's blocked SMTP ports by using Brevo's HTTPS API"""
     api_key = os.getenv("BREVO_API_KEY")
-    if not api_key:
-        print("❌ BREVO_API_KEY missing in environment variables")
-        return
-
+    if not api_key: return
     url = "https://api.brevo.com/v3/smtp/email"
-    headers = {
-        "accept": "application/json",
-        "api-key": api_key,
-        "content-type": "application/json"
-    }
-    payload = {
-        "sender": {"name": "Job Dekho Recruiter", "email": "dhananjayraj8210@gmail.com"},
-        "to": [{"email": to_email}],
-        "subject": subject,
-        "htmlContent": html_content
-    }
-    
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code in [200, 201, 202, 204]:
-            print("✅ Corporate Email sent successfully via Brevo HTTP API!")
-        else:
-            print(f"❌ Failed to send email: {response.text}")
-    except Exception as e:
-        print(f"❌ Network Error: {e}")
+    headers = {"accept": "application/json", "api-key": api_key, "content-type": "application/json"}
+    payload = {"sender": {"name": "Job Dekho Recruiter", "email": "dhananjayraj8210@gmail.com"}, "to": [{"email": to_email}], "subject": subject, "htmlContent": html_content}
+    try: requests.post(url, headers=headers, json=payload)
+    except: pass
 
 def send_employer_otp_email(email: str, otp: str, is_login: bool = False, is_reset: bool = False):
-    if is_reset:
-        action_text = "Password Reset"
-    else:
-        action_text = "Login Verification" if is_login else "Account Registration"
-        
-    html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center;">
-        <h2 style="color: #f59e0b;">Job Dekho Recruiter Suite</h2>
-        <p style="color: #475569;">Your 6-digit corporate {action_text} code is:</p>
-        <div style="background-color: #fffbeb; padding: 20px; border-radius: 8px; margin: 20px 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #b45309;">
-            {otp}
-        </div>
-        <p style="font-size: 12px; color: #94a3b8;">This code expires in 10 minutes.</p>
-    </div>
-    """
+    action_text = "Password Reset" if is_reset else ("Login Verification" if is_login else "Account Registration")
+    html = f"""<div style="font-family: Arial, sans-serif; text-align: center;"><h2 style="color: #f59e0b;">Job Dekho Recruiter Suite</h2><div style="background-color: #fffbeb; padding: 20px; font-size: 32px; font-weight: bold;">{otp}</div></div>"""
     send_email_via_api(email, f"Job Dekho Recruiter OTP - {action_text}", html)
 
+# --- AUTH ENDPOINTS ---
 @router.post("/login")
 async def login_employer(data: EmployerLoginPayload, background_tasks: BackgroundTasks):
     user = profiles_collection.find_one({"email": data.email, "role": "employer"})
@@ -152,10 +123,8 @@ async def send_employer_otp(data: EmployerRegisterPayload, background_tasks: Bac
 @router.post("/verify-otp")
 async def verify_employer_otp(data: VerifyPayload):
     record = otps_collection.find_one({"email": data.email, "otp": data.otp})
-    if not record:
-        raise HTTPException(status_code=400, detail="Invalid or expired corporate OTP.")
-    otp_type = record.get("type")
-    if otp_type == "employer_register":
+    if not record: raise HTTPException(status_code=400, detail="Invalid or expired corporate OTP.")
+    if record.get("type") == "employer_register":
         payload = record["payload"]
         payload["role"] = "employer"
         profiles_collection.insert_one(payload)
@@ -169,92 +138,66 @@ async def get_employer_profile(email: str):
 
 @router.post("/profile")
 async def save_employer_profile(data: dict):
-    email = data.get("email")
-    profiles_collection.update_one({"email": email}, {"$set": data}, upsert=True)
+    profiles_collection.update_one({"email": data.get("email")}, {"$set": data}, upsert=True)
     return {"success": True, "message": "Company profile saved successfully."}
 
 @router.post("/forgot-password")
 async def recruiter_forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks):
-    user = profiles_collection.find_one({"email": data.email, "role": "employer"})
-    if not user:
-        raise HTTPException(status_code=404, detail="No employer account found with this email.")
-        
+    if not profiles_collection.find_one({"email": data.email, "role": "employer"}):
+        raise HTTPException(status_code=404, detail="No employer account found.")
     otp = str(random.randint(100000, 999999))
-    otps_collection.update_one(
-        {"email": data.email}, 
-        {"$set": {"otp": otp, "type": "employer_password_reset"}}, 
-        upsert=True
-    )
+    otps_collection.update_one({"email": data.email}, {"$set": {"otp": otp, "type": "employer_password_reset"}}, upsert=True)
     background_tasks.add_task(send_employer_otp_email, data.email, otp, False, True)
     return {"success": True, "message": "Password reset OTP sent!"}
 
 @router.post("/reset-password")
 async def reset_employer_password(req: ResetPasswordRequest):
-    record = otps_collection.find_one({"email": req.email, "otp": req.otp, "type": "employer_password_reset"})
-    if not record:
+    if not otps_collection.find_one({"email": req.email, "otp": req.otp, "type": "employer_password_reset"}):
         raise HTTPException(status_code=400, detail="Invalid or expired reset OTP.")
-        
-    profiles_collection.update_one(
-        {"email": req.email, "role": "employer"},
-        {"$set": {"password": req.newPassword}} 
-    )
+    profiles_collection.update_one({"email": req.email, "role": "employer"}, {"$set": {"password": req.newPassword}})
     otps_collection.delete_many({"email": req.email, "type": "employer_password_reset"})
-    
     return {"success": True, "message": "Password successfully updated!"}
 
+# --- JOB POSTING (Fast & Synchronous) ---
 @router.post("/jobs")
 async def post_employer_job(data: JobPostRequest):
     try:
         unique_job_id = str(uuid.uuid4())
         exp = data.minExperienceRequired or data.experience_level or data.experience or "Not Specified"
-        
-        ai_tags = data.ai_tags or {}
-        if data.skills and "skills" not in ai_tags:
-            ai_tags["skills"] = [s.strip() for s in data.skills.split(",") if s.strip()]
-
         formatted_desc = fast_clean_description(data.description)
-
+        
+        # Save quickly. The background ETL pipeline will enrich this later.
         job_doc = {
             "job_id": unique_job_id,
             "title": data.title,
             "company_name": data.company_name,
             "location": data.location or "Remote",
             "minExperienceRequired": exp,
+            "category": "General", 
             "description": data.description,               
             "formattedDescription": formatted_desc,        
             "skills": data.skills,
             "via": "Direct Employer",
-            "ai_tags": ai_tags,
             "employer_email": str(data.email),
-            "posted_date": datetime.utcnow().isoformat()
+            "posted_date": datetime.utcnow().isoformat(),
+            "ai_processed": False # <--- Flag for our Daily Cron Job
         }
 
         result = jobs_collection.insert_one(job_doc.copy())
         mongo_id = str(result.inserted_id)
         job_doc["_id"] = mongo_id
 
+        # Insert basic vector into Qdrant immediately so it's searchable
         if qdrant_client:
-            vector_text = build_job_text(job_doc)
-            vector = generate_embedding(vector_text)
+            vector = generate_embedding(build_job_text(job_doc))
             if vector:
-                point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, mongo_id))
                 qdrant_client.upsert(
                     collection_name=COLLECTION_NAME,
-                    points=[
-                        models.PointStruct(
-                            id=point_id,
-                            vector=vector,
-                            payload={
-                                "mongodb_id": mongo_id,
-                                "job_id": unique_job_id,
-                                "title": data.title,
-                                "company_name": data.company_name
-                            }
-                        )
-                    ],
+                    points=[models.PointStruct(id=str(uuid.uuid5(uuid.NAMESPACE_DNS, mongo_id)), vector=vector, payload={"mongodb_id": mongo_id, "job_id": unique_job_id, "title": data.title, "company_name": data.company_name, "category": "General"})],
                     wait=False 
                 )
 
+        # JSON Backup
         try:
             jobs_list = []
             if os.path.exists(JSON_DB_PATH):
@@ -262,19 +205,100 @@ async def post_employer_job(data: JobPostRequest):
                     content = f.read().strip()
                     if content:
                         parsed = json.loads(content)
-                        if isinstance(parsed, list): jobs_list = parsed
-                        elif isinstance(parsed, dict) and "jobs" in parsed: jobs_list = parsed["jobs"]
-                        else: jobs_list = [parsed]
-            
+                        jobs_list = parsed.get("jobs", parsed) if isinstance(parsed, dict) else parsed
             jobs_list.append(job_doc)
-            with open(JSON_DB_PATH, "w", encoding="utf-8") as f:
-                json.dump(jobs_list, f, indent=4)
-        except Exception as json_err:
-            pass
+            with open(JSON_DB_PATH, "w", encoding="utf-8") as f: json.dump(jobs_list, f, indent=4)
+        except: pass
 
-        return {"success": True, "job_id": unique_job_id, "message": "Job successfully published and indexed by AI!"}
+        return {"success": True, "job_id": unique_job_id, "message": "Job published instantly. AI enrichment scheduled."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Server error posting job: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- BATCH AI ETL PIPELINE (Runs via Cron) ---
+@router.post("/run-daily-etl")
+async def run_daily_etl(authorization: Optional[str] = Header(None)):
+    # Optional Security: Ensure only you or Render can trigger this
+    if authorization != f"Bearer {os.getenv('CRON_SECRET', 'secret123')}":
+        raise HTTPException(status_code=401, detail="Unauthorized ETL trigger.")
+
+    # 1. Get all jobs that haven't been processed by AI yet (Limit 20 per run to save Gemini tokens)
+    unprocessed_jobs = list(jobs_collection.find({"ai_processed": False}).limit(20))
+    if not unprocessed_jobs:
+        return {"success": True, "message": "No new jobs to process today!"}
+
+    # 2. Package all jobs into ONE single payload for the LLM
+    batch_payload = []
+    for job in unprocessed_jobs:
+        batch_payload.append({
+            "job_id": job["job_id"],
+            "description": str(job.get("description", ""))[:800] # Give LLM just enough to extract tags
+        })
+
+    try:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key: raise Exception("No API Key")
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-3.5-flash')
+        
+        prompt = f"""
+        You are an expert HR data parser processing a batch of jobs. Read this list of jobs and extract tags.
+        Return a strict JSON object mapping the job_id to the extracted tags. NO markdown, NO code blocks, ONLY JSON.
+        
+        Example Output Format:
+        {{
+            "job123": {{"extracted_skills": ["Python", "SQL"], "job_category": "Data", "inferred_experience": "Mid Level"}},
+            "job456": {{"extracted_skills": ["React"], "job_category": "Frontend", "inferred_experience": "Entry Level"}}
+        }}
+        
+        Jobs to process:
+        {json.dumps(batch_payload)}
+        """
+        
+        response = model.generate_content(prompt)
+        text_response = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+        extracted_data = json.loads(text_response)
+
+        # 3. Update MongoDB and Qdrant in a loop
+        processed_count = 0
+        for job in unprocessed_jobs:
+            jid = job["job_id"]
+            if jid in extracted_data:
+                ai_data = extracted_data[jid]
+                
+                # Merge logic
+                user_skills = [s.strip() for s in (job.get("skills", "")).split(",") if s.strip()]
+                combined_skills = ", ".join(list(set(user_skills + ai_data.get("extracted_skills", []))))
+                category = ai_data.get("job_category", job.get("category", "General"))
+                
+                # Update MongoDB
+                update_fields = {
+                    "skills": combined_skills,
+                    "category": category,
+                    "ai_tags": ai_data,
+                    "ai_processed": True
+                }
+                if job.get("minExperienceRequired", "Not Specified") == "Not Specified" and ai_data.get("inferred_experience"):
+                    update_fields["minExperienceRequired"] = ai_data["inferred_experience"]
+
+                jobs_collection.update_one({"_id": job["_id"]}, {"$set": update_fields})
+                job.update(update_fields) # update local dict for qdrant
+
+                # Re-embed and update Qdrant Cloud
+                if qdrant_client:
+                    vector = generate_embedding(build_job_text(job))
+                    if vector:
+                        qdrant_client.upsert(
+                            collection_name=COLLECTION_NAME,
+                            points=[models.PointStruct(id=str(uuid.uuid5(uuid.NAMESPACE_DNS, str(job["_id"]))), vector=vector, payload={"mongodb_id": str(job["_id"]), "job_id": jid, "title": job["title"], "company_name": job["company_name"], "category": category})]
+                        )
+                processed_count += 1
+                
+        return {"success": True, "message": f"ETL Pipeline Complete. Processed {processed_count} jobs using 1 LLM call!"}
+        
+    except Exception as e:
+        print(f"ETL Batch Failed: {e}")
+        return {"success": False, "error": str(e)}
 
 @router.get("/analytics")
 async def get_employer_analytics(email: str):
@@ -296,12 +320,7 @@ async def get_employer_analytics(email: str):
 
         return {
             "success": True,
-            "metrics": {
-                "active_postings": active_postings,
-                "total_applications": total_apps,
-                "shortlisted": shortlisted,
-                "company_gst": gst
-            }
+            "metrics": {"active_postings": active_postings, "total_applications": total_apps, "shortlisted": shortlisted, "company_gst": gst}
         }
     except Exception as e:
         return {"success": False, "metrics": {"active_postings": 0, "total_applications": 0, "shortlisted": 0, "company_gst": "Error"}}
