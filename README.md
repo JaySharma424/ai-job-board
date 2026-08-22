@@ -198,62 +198,127 @@ A deeper, request-level view showing exactly how a job posting is ingested and i
 
 ```mermaid
 flowchart TB
+
  subgraph FE["🌐 Presentation Tier (Next.js / React Frontend)"]
         CD["Candidate Dashboard <br> Feed, Filters &amp; Resume Upload"]
         ED["Employer Studio <br> Job Posting &amp; GST Profile"]
         CC["AI Career Coach <br> Conversational RAG Hub"]
-  end
+ end
+
  subgraph BE["⚡ Application & API Tier (FastAPI Modular Backend)"]
         API_Jobs["/api/jobs <br> Compound Filtering Router"]
         API_Resume["/api/resume <br> RAG &amp; Tier-Based Router"]
         API_Emp["/api/employer/jobs <br> Recruiter Ingestion Router"]
+        API_ETL["/api/employer/run-daily-etl <br> Batch ETL Trigger"]
         API_Prem["/api/premium &amp; Chat <br> ATS, Auto-Apply &amp; AI Assistant"]
-  end
- subgraph AI["🧠 Intelligence & NLP Processing Tier"]
-        NLP["Regex / NLP Normalizer <br> Un-clumps headers &amp; structures bullets"]
-        EMB["Sentence-Transformers <br> 384-Dim Vector Embeddings"]
-        LLM["Google Gemini Flash LLM <br> Multi-job reasoning, scoring &amp; pitch gen"]
-  end
- subgraph DB["🗄️ Storage Tier (Cloud Databases)"]
-        MDB[("MongoDB Atlas <br> Raw &amp; Formatted Job Documents")]
-        QDR[("Qdrant Cloud <br> Dense Vector Similarity Index")]
-  end
-    ED -- "1. Submit Job Form" --> API_Emp
-    API_Emp -- "2. Pre-process Text" --> NLP
-    NLP -- "3. Clean & Save Formatted Text" --> MDB
-    API_Emp -- "4. Extract Job Text String" --> EMB
-    EMB -- "5. Push Vector + Payload Index" --> QDR
-    CD -- "1. Select Portal / Filters / Search" --> API_Jobs
-    API_Jobs -- "2. Construct Compound Regex Query" --> MDB
-    MDB -- "3. Return Paginated Clean Jobs" --> CD
-    CD -- "1. Upload PDF Resume" --> API_Resume
-    API_Resume -- "2. Parse Text & Generate Query Vector" --> EMB
-    EMB -- "3. Query Top Points - Free 2 vs Pro 10" --> QDR
-    QDR -- "4. Return Matched Document IDs" --> MDB
-    MDB -- "5. Fetch Full Job Data Documents" --> LLM
-    API_Resume -- "6. Bundle Resume + Job Documents" --> LLM
-    LLM -- "7. Return Match Score, Pitch & Skill Gaps" --> CD
-    CC -- Trigger ATS Score / Cover Letter / Chat --> API_Prem
-    CD -- Trigger ATS Score / Cover Letter / Chat --> API_Prem
-    API_Prem -- Inject Context & Prompt --> LLM
-    LLM -- Structured JSON Insights --> CD
+ end
 
-     CD:::frontend
-     ED:::frontend
-     CC:::frontend
-     API_Jobs:::backend
-     API_Resume:::backend
-     API_Emp:::backend
-     API_Prem:::backend
-     NLP:::ai
-     EMB:::ai
-     LLM:::ai
-     MDB:::db
-     QDR:::db
-    classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
-    classDef backend fill:#0f172a,stroke:#334155,stroke-width:2px,color:#fff
-    classDef ai fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
-    classDef db fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff
+ subgraph AI["🧠 Intelligence & NLP Processing Tier"]
+        NLP["Regex / NLP Normalizer <br> Clean raw job description"]
+        ETL["Autonomous AI ETL Pipeline <br> Batch unprocessed job records"]
+        LLM["Google Gemini Flash LLM <br> Skill extraction, classification,<br> experience inference &amp; Markdown formatting"]
+        EMB["Sentence-Transformers <br> 384-Dim Vector Embeddings"]
+ end
+
+ subgraph DB["🗄️ Storage Tier (Cloud Databases)"]
+        MDB[("MongoDB Atlas <br> Raw + Normalized Job Documents")]
+        QDR[("Qdrant Cloud <br> Dense Vector Similarity Index")]
+ end
+
+ %% =========================================================
+ %% JOB INGESTION + ETL PIPELINE
+ %% =========================================================
+
+ ED -- "1. Submit Job Details" --> API_Emp
+
+ API_Emp -- "2. Receive & Validate Job Data" --> NLP
+
+ NLP -- "3. Clean Raw Description" --> MDB
+
+ MDB -- "4. Mark ai_processed = false" --> API_ETL
+
+ API_ETL -- "5. Fetch Unprocessed Jobs in Batch" --> ETL
+
+ ETL -- "6. Send Job Description to Gemini" --> LLM
+
+ LLM -- "7. Return Strict JSON + Formatted Markdown" --> ETL
+
+ ETL -- "8. Update Normalized Job Record" --> MDB
+
+ MDB -- "9. Build Structured Job Text" --> EMB
+
+ EMB -- "10. Push Vector + Payload" --> QDR
+
+
+ %% =========================================================
+ %% JOB SEARCH
+ %% =========================================================
+
+ CD -- "1. Select Portal / Filters / Search" --> API_Jobs
+
+ API_Jobs -- "2. Construct Compound Query" --> MDB
+
+ MDB -- "3. Return Paginated Normalized Jobs" --> CD
+
+
+ %% =========================================================
+ %% RESUME MATCHING
+ %% =========================================================
+
+ CD -- "1. Upload PDF Resume" --> API_Resume
+
+ API_Resume -- "2. Parse Resume & Generate Query Vector" --> EMB
+
+ EMB -- "3. Query Top Points - Free 2 vs Pro 10" --> QDR
+
+ QDR -- "4. Return Matched Document IDs" --> MDB
+
+ MDB -- "5. Fetch Full Job Documents" --> LLM
+
+ API_Resume -- "6. Bundle Resume + Job Context" --> LLM
+
+ LLM -- "7. Return Match Score, Pitch & Skill Gaps" --> CD
+
+
+ %% =========================================================
+ %% AI CAREER COACH / PREMIUM
+ %% =========================================================
+
+ CC -- "Trigger ATS Score / Cover Letter / Chat" --> API_Prem
+
+ CD -- "Trigger ATS Score / Cover Letter / Chat" --> API_Prem
+
+ API_Prem -- "Inject Context & Prompt" --> LLM
+
+ LLM -- "Structured JSON Insights" --> CD
+
+
+ %% =========================================================
+ %% STYLING
+ %% =========================================================
+
+ CD:::frontend
+ ED:::frontend
+ CC:::frontend
+
+ API_Jobs:::backend
+ API_Resume:::backend
+ API_Emp:::backend
+ API_ETL:::backend
+ API_Prem:::backend
+
+ NLP:::ai
+ ETL:::ai
+ LLM:::ai
+ EMB:::ai
+
+ MDB:::db
+ QDR:::db
+
+ classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
+ classDef backend fill:#0f172a,stroke:#334155,stroke-width:2px,color:#fff
+ classDef ai fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
+ classDef db fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff
 ```
 
 **Notable design details visible in this flow:**
