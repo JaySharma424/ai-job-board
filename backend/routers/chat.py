@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from typing import Optional, List, Dict, Any
 
 import google.generativeai as genai
@@ -8,6 +9,10 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from models import ChatResponse, FeedbackRequest, FeedbackResponse, CoachMemoryResponse
+
+# 🟢 NEW: Import Vector Database utilities to make Chatbot Vector-Aware
+from vector_db import qdrant_client, generate_embedding, COLLECTION_NAME
+from database import jobs_collection
 
 router = APIRouter(
     prefix="/api/chat",
@@ -164,7 +169,22 @@ Strict Guidelines for Premium Users:
         )
 
     resume_context = resume_text[:MAX_RESUME_CHARS] if resume_text else "No resume uploaded yet."
+<<<<<<< HEAD
     jobs_context = str(jobs[:MAX_JOBS_IN_CONTEXT]) if jobs else "No specific jobs are currently loaded."
+=======
+    
+    # 🟢 NEW: Clean job context to avoid overloading the LLM
+    clean_jobs = []
+    for j in jobs[:MAX_JOBS_IN_CONTEXT]:
+        clean_jobs.append({
+            "title": j.get("title", ""),
+            "company": j.get("company_name", ""),
+            "skills": j.get("skills", ""),
+            "description": str(j.get("description", ""))[:300]
+        })
+        
+    jobs_context = str(clean_jobs) if clean_jobs else "No specific jobs are currently loaded."
+>>>>>>> 423daec9 (Fixed distict extraction of jobs while using chatbot and resume parser)
 
     return f"""
 You are the AI Career Coach for an AI-powered job portal.
@@ -185,7 +205,7 @@ CANDIDATE RESUME
 {resume_context}
 
 ==================================================
-AVAILABLE JOBS
+AVAILABLE JOBS (Vector Matched)
 ==================================================
 {jobs_context}
 
@@ -204,6 +224,30 @@ async def chat_with_ai(data: ChatRequest, x_gemini_api_key: Optional[str] = Head
 
         genai.configure(api_key=api_key)
         learned_prompt = await get_coach_memory(session_id=data.session_id)
+
+        # ==============================================================
+        # 🟢 NEW: DYNAMIC VECTOR INTERCEPTION 
+        # Overwrite the frontend's random jobs with actual semantic matches!
+        # ==============================================================
+        is_job_query = any(keyword in data.message.lower() for keyword in ["jobs", "match", "recommend", "find", "opportunities"])
+        
+        if data.resumeText and is_job_query and qdrant_client:
+            try:
+                resume_vector = generate_embedding(data.resumeText[:2000])
+                if resume_vector:
+                    search_result = qdrant_client.search(
+                        collection_name=COLLECTION_NAME,
+                        query_vector=resume_vector,
+                        limit=5
+                    )
+                    matched_job_ids = [hit.payload.get("job_id") for hit in search_result if hit.payload]
+                    if matched_job_ids:
+                        semantic_jobs = list(jobs_collection.find({"job_id": {"$in": matched_job_ids}}, {"_id": 0}))
+                        if semantic_jobs:
+                            data.jobContext = semantic_jobs # Override the context!
+            except Exception as e:
+                print(f"Vector search failed in chat. Fallback to frontend context. Error: {e}")
+        # ==============================================================
 
         gemini_history = []
         for message in data.history[-MAX_HISTORY_MESSAGES:]:
