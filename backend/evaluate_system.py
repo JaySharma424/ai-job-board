@@ -114,7 +114,7 @@ OUTPUT_DIR = Path(
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-NVIDIA_API_KEY = "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"
+NVIDIA_API_KEY = "--------YVL514qbAK5uCx2tX-arOcTp4gPNyX"
 
 NVIDIA_BASE_URL = os.getenv(
     "NVIDIA_BASE_URL",
