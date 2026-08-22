@@ -211,7 +211,8 @@ Return ONLY a valid JSON array matching this exact schema, without markdown code
             "tier": "Pro" if user_is_pro else "Free",
             "total_matches": len(enriched_matches),
             "matches": enriched_matches,
-            "resumeText": resume_text[:1500]
+            # 🟢 FIX: We now return 5000 characters to the frontend so chat.py gets the exact same string
+            "resumeText": resume_text[:5000] 
         }
 
     except Exception as e:
