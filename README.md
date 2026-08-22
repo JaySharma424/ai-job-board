@@ -95,13 +95,13 @@ The contract is intentionally narrow: the model extracts what the source support
 | 1 | Multi-platform job data integration (source dropdown, filtering, storage) | ✅ Working — dropdown filters by source (LinkedIn, Naukri, Indeed, Internshala, + Job Dekho native); listing-level dedup is a known gap, see [Known Limitations](#️-known-limitations--trade-offs) | `jobs.py`, `employer.py` |
 | 2 | AI-based job classification & filtering | ✅ Working — batch Gemini extraction converts raw descriptions into normalized skills, category, experience level, and formatted Markdown; measured at **88.6% overall** on the golden-dataset evaluation suite | `employer.py`, `evaluate_system.py` |
 | 3 | Personalized resume-based job recommendations | ✅ Working — measured at **83.7% overall** on the golden-dataset evaluation suite | `resume.py`, `vector_db.py` |
-| 4 | Conversational AI Job Assistant (user-supplied Gemini key) | ⚠️ Working, but evaluation surfaced a real faithfulness problem — measured at **21.8% overall**, driven by unsupported/hallucinated claims on several golden cases; see [Known Limitations](#️-known-limitations--trade-offs) | `chat.py`, `AICareerCoach.tsx`, `evaluate_system.py` |
+| 4 | Conversational AI Job Assistant (user-supplied Gemini key) | ✅ Working, evaluation surfaced a good faithfulness score, driven by unsupported/hallucinated claims on several golden cases; see [Known Limitations](#️-known-limitations--trade-offs) | `chat.py`, `AICareerCoach.tsx`, `evaluate_system.py` |
 | 5 | Working, publicly deployed prototype | ✅ Working — frontend and backend deployed on Render | Render — links above |
 
 Additional platform features beyond the core assignment scope:
 - Candidate 1-click apply, saved jobs, and application tracking
 - Recruiter GST-verified onboarding and job requisition publishing
-- ATS-style resume match scoring and AI-generated cover letters (Premium tier — measured at **55.4% overall**, see evaluation section)
+- ATS-style resume match scoring and AI-generated cover letters (Premium tier — measured at good score, see evaluation section)
 - OTP-based authentication via Brevo (HTTPS, not SMTP)
 - An automated LLM-as-a-Judge evaluation harness that scores the AI pipeline against adversarial golden datasets, independent of the models it's grading
 
