@@ -91,22 +91,188 @@ def extract_tags_via_llm(description: str) -> dict:
         model = genai.GenerativeModel('gemini-3.5-flash')
         
         prompt = f"""
-        You are an expert HR data parser. Read the following job description and extract the key information into a strict JSON format. 
-        Crucially, rewrite and format the raw description into a 'formatted_description'. 
-        - Use **bold** text for section headers (e.g., **Responsibilities:**, **Requirements:**).
-        - Use standard bullet points (-) for lists of skills or duties.
-        - Add paragraph breaks to make it highly readable and production-grade.
-        
-        Required JSON Schema:
+        You are an expert HR data extraction and job-description normalization engine.
+        Your task is to analyze the provided raw job description (JD) and transform it into a
+        clean, structured, machine-readable representation suitable for a production HR/job
+        search dataset.
+
+        IMPORTANT:
+        - Extract information ONLY from the provided job description.
+        - Do NOT invent, assume, or hallucinate skills, qualifications, responsibilities,
+        experience levels, companies, technologies, or requirements that are not supported
+        by the JD.
+        - Normalize equivalent terms where appropriate (e.g., "Python programming" → "Python",
+          "Machine Learning" → "Machine Learning", "MS Excel" → "Excel").
+        - Remove duplicate skills.
+        - Preserve the meaning of the original JD.
+        - If information is unavailable or cannot be confidently inferred, use a reasonable
+          fallback such as "Not Specified" rather than fabricating information.
+
+        RAW JOB DESCRIPTION:
+        --------------------
+        {desc}
+        --------------------
+
+        ## 1. EXTRACTED SKILLS
+
+        Extract the important technical and professional skills explicitly mentioned or
+        strongly required in the JD.
+
+        Include, when applicable:
+        - Programming languages
+        - Frameworks and libraries
+        - Databases
+        - Cloud platforms
+        - DevOps / deployment technologies
+        - Data Science / Machine Learning / AI technologies
+        - Software engineering technologies
+        - Tools and platforms
+        - Domain-specific technical skills
+        - Soft skills explicitly required by the employer
+
+        Rules:
+        - Return unique skills only.
+        - Prefer canonical/common skill names.
+        - Do not extract generic words such as "computer", "technology", "work", or "team"
+          unless they represent an actual requirement.
+        - Do not infer technologies merely because they are commonly associated with the role.
+        - Keep the list concise and relevant to the job.
+
+        ## 2. JOB CATEGORY
+
+        Determine the primary job category based on the actual responsibilities and
+        requirements in the JD.
+
+        Examples:
+        - Software Engineering
+        - Data Science
+        - Data Analytics
+        - Machine Learning / AI
+        - Generative AI
+        - Backend Development
+        - Frontend Development
+        - Full Stack Development
+        - DevOps / Cloud
+        - Cybersecurity
+        - Product Management
+        - UI/UX Design
+        - Business / Management
+        - Marketing
+        - Finance
+        - Human Resources
+        - Research
+        - Other
+
+        If multiple areas are mentioned, select the category that best represents the
+        PRIMARY responsibility of the position.
+
+        Do not classify the job solely based on isolated skills.
+
+        ## 3. EXPERIENCE LEVEL
+
+        Infer the seniority level using explicit experience requirements, job title,
+        responsibilities, and seniority indicators.
+
+        Allowed values:
+        - "Internship"
+        - "Entry Level"
+        - "Junior"
+        - "Mid Level"
+        - "Senior"
+        - "Lead / Principal"
+        - "Manager"
+        - "Not Specified"
+
+        Guidelines:
+        - 0–1 years or fresh graduate → usually "Entry Level"
+        - 1–3 years → usually "Junior"
+        - 3–6 years → usually "Mid Level"
+        - 6+ years → usually "Senior"
+        - Lead, Principal, Staff → "Lead / Principal"
+        - Manager / people-management responsibility → "Manager"
+
+        These ranges are guidelines only. Prefer explicit wording in the JD over
+        years-of-experience ranges.
+
+        If the JD does not provide enough evidence, return "Not Specified".
+
+        ## 4. FORMATTED DESCRIPTION
+
+        Rewrite the raw JD into clean, professional Markdown while preserving the original
+        meaning and factual information.
+
+        Formatting requirements:
+
+        - Use Markdown section headers in bold.
+        - Use bullet points with "-".
+        - Separate major sections with blank lines.
+        - Make the content easy to scan.
+        - Correct obvious formatting, spacing, and OCR/text extraction issues.
+        - Remove unnecessary repeated whitespace.
+        - Preserve important details such as qualifications, responsibilities,
+          experience requirements, location, employment type, and other job-specific
+          information when present.
+        - Do NOT add information that does not exist in the original JD.
+        - Do NOT change the meaning of responsibilities or requirements.
+        - Do NOT add promotional language.
+        - Do NOT use HTML.
+        - Do NOT use Markdown tables.
+        - Do NOT use emojis.
+
+        Preferred structure when the information exists:
+
+        **About the Role:**
+        <short paragraph>
+
+        **Responsibilities:**
+        - Responsibility 1
+        - Responsibility 2
+
+        **Requirements:**
+        - Requirement 1
+        - Requirement 2
+
+        **Technical Skills:**
+        - Skill 1
+        - Skill 2
+
+        **Preferred Qualifications:**
+        - Qualification 1
+
+        **Additional Information:**
+        - Location, employment type, salary, benefits, etc. when explicitly available.
+
+        Only include sections that are supported by the original JD.
+
+        ## 5. DATA QUALITY RULES
+
+        Before returning the result, verify that:
+
+        1. The JSON is syntactically valid.
+        2. No duplicate skills exist.
+        3. Skills are normalized consistently.
+        4. The job category matches the primary nature of the role.
+        5. Experience level is supported by evidence from the JD.
+        6. No unsupported information has been added.
+        7. formatted_description contains valid Markdown.
+        8. All required fields are present.
+        9. Do not include explanations outside the JSON.
+        10. Return ONLY the JSON object.
+
+        ## REQUIRED JSON SCHEMA
+
         {{
-            "extracted_skills": ["skill1", "skill2"],
-            "job_category": "Software Engineering / Data / Design etc.",
-            "inferred_experience": "Entry Level / Mid Level / Senior",
-            "formatted_description": "<Your beautifully formatted markdown description here>"
+            "extracted_skills": [
+                "skill1",
+                "skill2",
+                "skill3"
+            ],
+            "job_category": "Primary Job Category",
+            "inferred_experience": "Entry Level / Junior / Mid Level / Senior / etc.",
+            "formatted_description": "Formatted Markdown job description"
         }}
-        
-        Job Description:
-        {description[:2500]}
+
+        Return ONLY the JSON object.
         """
         
         response = model.generate_content(prompt)
