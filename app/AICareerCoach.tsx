@@ -31,9 +31,10 @@ type Props = {
   isPremium?: boolean;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
-  "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://ai-job-board-backend-izko.onrender.com');
 
 const API_KEY_STORAGE = "ai-career-coach-gemini-key";
 
