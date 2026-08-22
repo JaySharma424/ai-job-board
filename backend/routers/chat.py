@@ -7,10 +7,10 @@ import google.generativeai as genai
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
+from bson import ObjectId # 🟢 ADDED: Required to match resume.py's DB query
 
 from models import ChatResponse, FeedbackRequest, FeedbackResponse, CoachMemoryResponse
 
-# 🟢 NEW: Import Vector Database utilities to make Chatbot Vector-Aware
 from vector_db import qdrant_client, generate_embedding, COLLECTION_NAME
 from database import jobs_collection
 
@@ -19,10 +19,7 @@ router = APIRouter(
     tags=["Chat"],
 )
 
-GEMINI_MODEL = os.getenv(
-    "GEMINI_CHAT_MODEL",
-    "gemini-3.5-flash",
-)
+GEMINI_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.5-flash")
 
 MAX_HISTORY_MESSAGES = 12
 MAX_RESUME_CHARS = 5000
@@ -170,7 +167,6 @@ Strict Guidelines for Premium Users:
 
     resume_context = resume_text[:MAX_RESUME_CHARS] if resume_text else "No resume uploaded yet."
     
-    # 🟢 NEW: Clean job context to avoid overloading the LLM
     clean_jobs = []
     for j in jobs[:MAX_JOBS_IN_CONTEXT]:
         clean_jobs.append({
@@ -222,25 +218,57 @@ async def chat_with_ai(data: ChatRequest, x_gemini_api_key: Optional[str] = Head
         learned_prompt = await get_coach_memory(session_id=data.session_id)
 
         # ==============================================================
-        # 🟢 NEW: DYNAMIC VECTOR INTERCEPTION 
-        # Overwrite the frontend's random jobs with actual semantic matches!
+        # 🟢 SYNCHRONIZED VECTOR INTERCEPTION 
+        # Mirrors resume.py EXACTLY (2 vs 10 limit, 2500 chars, is_query)
         # ==============================================================
         is_job_query = any(keyword in data.message.lower() for keyword in ["jobs", "match", "recommend", "find", "opportunities"])
         
         if data.resumeText and is_job_query and qdrant_client:
             try:
-                resume_vector = generate_embedding(data.resumeText[:2000])
+                target_limit = 10 if data.is_premium else 2
+                resume_vector = generate_embedding(data.resumeText[:2500], is_query=True)
+                
                 if resume_vector:
-                    search_result = qdrant_client.search(
-                        collection_name=COLLECTION_NAME,
-                        query_vector=resume_vector,
-                        limit=5
-                    )
-                    matched_job_ids = [hit.payload.get("job_id") for hit in search_result if hit.payload]
-                    if matched_job_ids:
-                        semantic_jobs = list(jobs_collection.find({"job_id": {"$in": matched_job_ids}}, {"_id": 0}))
-                        if semantic_jobs:
-                            data.jobContext = semantic_jobs # Override the context!
+                    try:
+                        response = qdrant_client.query_points(
+                            collection_name=COLLECTION_NAME,
+                            query=resume_vector,
+                            limit=target_limit
+                        )
+                        search_results = response.points
+                    except AttributeError:
+                        search_results = qdrant_client.search(
+                            collection_name=COLLECTION_NAME,
+                            query_vector=resume_vector,
+                            limit=target_limit
+                        )
+
+                    retrieved_ids = []
+                    for hit in search_results:
+                        payload = getattr(hit, "payload", {}) or {}
+                        mongo_id = payload.get("mongodb_id") or str(hit.id)
+                        retrieved_ids.append(mongo_id)
+
+                    valid_object_ids = [ObjectId(jid) for jid in retrieved_ids if ObjectId.is_valid(jid)]
+                    query_filter = {
+                        "$or": [
+                            {"_id": {"$in": valid_object_ids}},
+                            {"job_id": {"$in": retrieved_ids}}
+                        ]
+                    }
+                    
+                    semantic_jobs = list(jobs_collection.find(query_filter, {"_id": 0}))
+                    
+                    # Enforce exact ranking order returned by Qdrant
+                    ordered_jobs = []
+                    for jid in retrieved_ids:
+                        for job in semantic_jobs:
+                            if str(job.get("_id")) == jid or job.get("job_id") == jid:
+                                ordered_jobs.append(job)
+                                break
+                                
+                    if ordered_jobs:
+                        data.jobContext = ordered_jobs 
             except Exception as e:
                 print(f"Vector search failed in chat. Fallback to frontend context. Error: {e}")
         # ==============================================================
