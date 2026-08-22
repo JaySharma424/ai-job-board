@@ -1,0 +1,4 @@
+module,rows,json_success_rate,jaccard,precision,recall,f1,skipped_bad_context,faithfulness,pass_rate
+ETL,6,1.0,0.4927248677248677,0.9027777777777777,0.5212962962962963,0.6347222222222223,,,
+RESUME,4,1.0,,0.5,1.0,0.5,,,
+RAG,6,,,,,,0.0,0.8333333333333334,0.8333333333333334

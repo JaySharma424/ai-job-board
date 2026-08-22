@@ -1,0 +1,22 @@
+{
+  "pack": "Job Dekho Complex Golden Dataset",
+  "version": "1.0",
+  "counts": {
+    "etl": 15,
+    "resume_parsing": 12,
+    "chatbot_ragas": 20,
+    "premium": 20,
+    "total": 67
+  },
+  "files": {
+    "etl": "/mnt/data/job_dekho_golden_datasets/etl_golden_complex.csv",
+    "resume": "/mnt/data/job_dekho_golden_datasets/resume_parsing_golden_complex.csv",
+    "chatbot": "/mnt/data/job_dekho_golden_datasets/chatbot_ragas_golden_complex.csv",
+    "premium": "/mnt/data/job_dekho_golden_datasets/premium_golden_complex.csv"
+  },
+  "notes": [
+    "Designed from supplied employer.py, resume.py, chat(4).py, premium.py and dataset snapshot.",
+    "Includes prompt injection, empty inputs, contradictory requirements, missing experience, synonym normalization, duplicate skills, malformed model outputs, premium authorization, duplicate auto-apply, history edge cases, and async failure visibility.",
+    "CSV schemas are intentionally evaluation-oriented and can be consumed directly by Python/pandas."
+  ]
+}

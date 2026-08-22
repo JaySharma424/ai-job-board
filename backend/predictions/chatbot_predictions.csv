@@ -1,0 +1,234 @@
+test_id,actual_output,actual_http_status,prediction_source
+CHAT-001,"Based on the job description for the **Data Scientist role at Acme AI**, the required skills are:
+
+*   **Python**
+*   **SQL**
+*   **Statistics**
+
+**Your Match:**
+You currently have **Python** and **SQL** listed in your skillset. The primary gap to address for this specific role is **Statistics**.
+
+**Suggested Next Step:**
+If you have statistics knowledge (e.g., hypothesis testing, regression, probability distributions, A/B testing) from coursework or projects, add **""Statistics""** explicitly to your resume skills section and be prepared to discuss specific applications in an interview.",200,shadow
+CHAT-002,"Based on the information provided, I don't have any salary data for the Data Scientist role at Acme AI. The job description and retrieved context only mention the required skills (Python, SQL, and Statistics) but don't include compensation details.
+
+**Next steps you can take:**
+1. **Check the original job posting** on Acme AI's careers page or the job board where you found it
+2. **Research market rates** for Data Scientist roles in your location/industry using sites like Glassdoor, Levels.fyi, or Payscale
+3. **Ask during the screening call** - it's appropriate to ask about the salary range early in the process
+4. **Check if the role has a posted range** - some jurisdictions require salary transparency in job postings
+
+Would you like help with any of these approaches, or do you have other questions about this role?",200,shadow
+CHAT-003,"Based on the job description for the Data Scientist role at Acme AI, **Kubernetes is not required**.
+
+The listing explicitly lists **Python, SQL, and Statistics** as the required skills. Kubernetes appears only under ""Preferred"" qualifications, meaning it is a nice-to-have rather than a mandatory requirement.",200,shadow
+CHAT-004,"Based on the job listing provided, the **Data Scientist** role at **Acme AI** requires the following skills:
+
+*   **Python**
+*   **SQL**
+*   **Statistics**
+
+**Comparison with your profile:**
+You currently list **Python** and **SQL** as skills. The primary gap for this specific role is **Statistics**.
+
+**Suggested next step:** If you have statistics knowledge (e.g., hypothesis testing, regression, probability), add it explicitly to your resume. If not, a focused course or certification in statistics for data science would close the gap.",200,shadow
+CHAT-005,"Based on the single job provided (**Data Scientist at Acme AI**), here is the eligibility breakdown:
+
+**✅ Clear Matches**
+- **Python** – listed in both your skills and the job requirements.
+- **SQL** – listed in both your skills and the job requirements.
+
+**❓ Gap**
+- **Statistics** – required by the job but **not mentioned** in your supplied skill list (Python, SQL, RAG, FastAPI).
+
+**Verdict**
+You meet 2 of the 3 explicitly listed requirements. Whether that makes you “eligible” depends on how strictly Acme AI weighs the Statistics requirement. Many Data Scientist roles expect at least a working knowledge of statistical concepts (hypothesis testing, regression, experimental design, etc.).
+
+**Recommended next steps**
+1. **Self-assess your Statistics knowledge** – Can you explain p-values, confidence intervals, A/B testing, or common distributions? If yes, add “Statistics” (or specific topics) to your résumé and LinkedIn.
+2. **If you have gaps**, consider a focused refresher (e.g., Khan Academy, StatQuest, or a short Coursera/edX module) and add a project or certification that demonstrates applied statistics.
+3. **Tailor your application** – Highlight any coursework, projects, or work experience where you used statistical methods, even if you didn’t label it “Statistics” before.
+4. **Apply anyway** – With Python + SQL covered, you already satisfy the majority of the hard-skill checklist; the Statistics gap can often be addressed in the interview or on the job.
+
+If you have more job postings or a fuller job description, share them and I can give a broader eligibility picture.",200,shadow
+CHAT-006,"Yes — the retrieved context shows your resume lists **Python** (along with SQL, RAG, and FastAPI). The Data Scientist role at Acme AI requires Python, SQL, and Statistics, so you meet the Python requirement.",200,shadow
+CHAT-007,"Based on the resume you provided, **Kubernetes is not listed** among your skills. The skills explicitly mentioned are:
+
+- Python
+- SQL
+- RAG
+- FastAPI
+
+If you have Kubernetes experience (e.g., deploying containers, managing clusters, writing Helm charts, or using managed services like EKS/GKE/AKS), you should add it to your resume—especially if you're targeting roles that involve MLOps, backend engineering, or productionizing ML models.",200,shadow
+CHAT-008,"Based on our conversation history and your stated goal, you should continue to **prioritize SQL**.
+
+You previously mentioned wanting to improve SQL first, and I confirmed we would prioritize it. The retrieved context also notes your goal is to strengthen SQL and interview skills. Since the target Data Scientist role at Acme AI explicitly requires SQL (alongside Python and Statistics), focusing here aligns directly with the job requirements.
+
+**Concrete next steps:**
+1.  **Daily Practice:** Solve 3–5 medium/hard problems on LeetCode (Database) or StrataScratch focusing on `JOINs`, `WINDOW FUNCTIONS`, `CTEs`, and `CASE` statements.
+2.  **Data Science Context:** Practice writing queries for exploratory data analysis (EDA)—calculating retention, conversion funnels, and summary statistics—since the role is Data Science, not just Data Engineering.
+3.  **Interview Prep:** Prepare to explain *why* you chose specific indexes or join strategies (query optimization) for behavioral/technical rounds.",200,shadow
+CHAT-009,"Based on the retrieved context and the Data Scientist role at Acme AI, you should prioritize **SQL proficiency** and **interview communication skills**.
+
+**Concrete next steps:**
+
+1.  **SQL:** Move beyond basic `SELECT` statements. Practice complex joins, window functions (`ROW_NUMBER`, `RANK`, `LAG/LEAD`), CTEs, and query optimization/explain plans. Aim to solve medium/hard LeetCode SQL problems (or Mode Analytics/StrataScratch) 3–4 times a week.
+2.  **Communication (Interview):** Practice explaining technical projects using the **STAR method** (Situation, Task, Action, Result). Focus on translating technical complexity into business impact. Do 2–3 mock interviews (Pramp, peers, or paid services) specifically targeting behavioral and case-study rounds.
+
+Since no resume is uploaded yet, I cannot map these gaps to your specific experience. If you upload your resume, I can tell you exactly which projects to highlight and where your current SQL/Python depth matches (or misses) the Acme AI requirements.",200,shadow
+CHAT-010,"I'll start a mock backend interview for you. Based on your resume (Python, SQL, RAG, FastAPI) and the target role at Acme AI (Data Scientist requiring Python, SQL, Statistics), I'll focus on backend engineering fundamentals that complement your profile.
+
+**Question 1: System Design & Trade-offs**
+
+You're building a high-throughput API service using FastAPI that serves RAG-powered responses. The service experiences sudden 10x traffic spikes during peak hours. 
+
+Walk me through:
+1. How you'd architect the system to handle this load (infrastructure, caching, queueing)
+2. The specific trade-offs you'd make between consistency, latency, and cost
+3. How you'd handle failure recovery when your vector database becomes unavailable
+
+Take your time — I'm looking for concrete architectural decisions with reasoning, not just tool names.",200,shadow
+CHAT-011,"Design a high-throughput ingestion API (FastAPI) that receives 50k events/sec from external partners, validates/enriches each event, and durably stores it in PostgreSQL for downstream analytics and a RAG pipeline. Walk me through:
+
+1. API layer: request validation, back-pressure, auth, idempotency keys.  
+2. Async processing: how you decouple ingestion from enrichment/storage (queue choice, partitioning, ordering guarantees).  
+3. PostgreSQL write path: batching strategy, connection pooling, schema/indexing for time-series + vector columns, handling write spikes without locking.  
+4. Failure domains: retry/back-off, dead-letter queue, exactly-once semantics, replay after schema migration.  
+5. Observability & cost: key metrics, autoscaling triggers, estimated infra cost at peak vs. idle.
+
+Start with the API layer—what does the FastAPI endpoint look like and how do you protect the database from overload?",200,shadow
+CHAT-012,"I don't have enough information to give you a specific answer. You haven't uploaded a resume or asked a specific question yet.
+
+Please upload your resume and let me know what you'd like help with (e.g., job matching, skill gaps, interview prep).",200,shadow
+CHAT-013,"Based on the retrieved context, the interview for the **Data Scientist role at Acme AI** will specifically test your ability to write and explain **SQL joins**.
+
+Since your resume lists **SQL** as a skill, here is a detailed breakdown of what you should prepare for, moving from basics to the complex scenarios interviewers typically use to filter candidates.
+
+---
+
+### 1. The Core Join Types (Must Know)
+Be able to draw the Venn diagrams and write the syntax for each instantly.
+
+| Join Type | Returns | Typical Interview Question |
+| :--- | :--- | :--- |
+| **INNER JOIN** | Only matching rows in both tables. | ""Find all customers who have placed an order."" |
+| **LEFT (OUTER) JOIN** | All rows from left table + matches from right (NULLs if no match). | ""List all customers and their orders (include customers with 0 orders)."" |
+| **RIGHT (OUTER) JOIN** | All rows from right table + matches from left. | Rarely used explicitly (just swap table order and use LEFT). |
+| **FULL (OUTER) JOIN** | All rows from both tables (NULLs where no match). | ""Find all customers and all orders, matching where possible."" |
+| **CROSS JOIN** | Cartesian product (Every row × Every row). | ""Generate a report of every product in every store (inventory matrix)."" |
+| **SELF JOIN** | Table joined to itself. | ""Find employees who earn more than their managers"" or ""Find friends of friends."" |
+
+---
+
+### 2. High-Probability ""Trap"" Scenarios for Data Science
+Data Science interviews focus less on syntax and more on **data integrity** and **grain changes**.
+
+#### A. The ""Fan-out"" / Row Explosion (Critical)
+*   **Scenario:** You join `Users` (1M rows) to `Events` (100M rows) on `user_id`.
+*   **The Trap:** If a user has 50 events, that user appears 50 times in the result.
+*   **Interview Question:** *""You run a join to calculate average session time per user. Your numbers look inflated. Why?""*
+*   **Fix:** Aggregate the ""many"" side (Events) *before* joining, or use `COUNT(DISTINCT user_id)` in the select.
+
+#### B. NULL Handling in ON vs. WHERE
+*   **Scenario:** `LEFT JOIN table_b ON a.id = b.id AND b.status = 'active'` vs `LEFT JOIN ... ON a.id = b.id WHERE b.status = 'active'`.
+*   **The Trap:** Putting the filter in `WHERE` converts a `LEFT JOIN` into an `INNER JOIN` (because `NULL != 'active'`).
+*   **Rule:** Filter the *right* table in the `ON` clause; filter the *result* in the `WHERE` clause.
+
+#### C. Composite / Fuzzy Keys
+*   **Scenario:** Joining on `first_name + last_name` or `email` (case sensitivity, trailing spaces).
+*   **Prep:** Know `LOWER()`, `TRIM()`, and `CONCAT()` / `||` for creating match keys.
+
+#### D. Time-Series / As-Of Joins (Very Common in DS)",200,shadow
+CHAT-014,"Based on the retrieved context provided, the key requirement is **Python**.",200,shadow
+CHAT-015,"Based on the job listing for the **Data Scientist** role at **Acme AI**, the core technical requirements are:
+
+*   **Python**
+*   **SQL**
+*   **Statistics**",200,shadow
+CHAT-016,"Based on the information provided, **I would not recommend applying to this specific Data Scientist role at Acme AI.**
+
+Here is the breakdown:
+
+**The Mismatch**
+*   **Job Requirement:** The retrieved context explicitly states the role requires **Java and Spring**.
+*   **Your Profile:** Your resume lists **Python, SQL, RAG, and FastAPI**. You do not have Java or Spring in your skillset.
+
+**Why this matters**
+Data Science roles requiring Java/Spring typically indicate a heavy **ML Engineering or Production Engineering focus** (building scalable JVM-based pipelines, deploying models into existing Java microservice architectures). Your stack (Python/FastAPI/RAG) is modern for LLM application development and prototyping, but it does not translate to the specific backend stack this employer is asking for.
+
+**Better Strategy**
+Instead of applying cold to a stack you don't know, focus your energy on roles matching **your actual stack**:
+*   **Target Titles:** LLM Engineer, AI Engineer, Applied Scientist, ML Engineer (Python stack), RAG Specialist.
+*   **Keywords to hunt for:** Python, FastAPI/Flask, LangChain/LlamaIndex, Vector Databases (Pinecone/Weaviate), RAG, Prompt Engineering, AWS/GCP/Azure (Python SDKs).
+
+**Immediate Next Step**
+Search for ""LLM Engineer"" or ""AI Engineer"" roles requiring **Python, FastAPI, and RAG**. You will likely find a much higher response rate there.",200,shadow
+CHAT-017,"Based on your resume and the Data Scientist role at Acme AI, you already have **Python** and **SQL** listed as skills. The job also requires **Statistics**, which isn't mentioned in your current skill set.
+
+**Immediate next steps:**
+
+1. **Validate your current Python/SQL level** against what the role actually needs:
+   - **Python**: Can you write production-grade code (FastAPI endpoints, data pipelines, testing, CI/CD)? The job likely expects more than notebook-style scripts.
+   - **SQL**: Can you write complex queries (window functions, CTEs, query optimization, partitioning)? Data Scientist roles often require heavy SQL for feature engineering.
+
+2. **Close the Statistics gap** (the missing requirement):
+   - Focus on: hypothesis testing, A/B testing, regression, probability distributions, statistical significance.
+   - Resources: *Statistical Thinking for Data Science* (freeCodeCamp), *An Introduction to Statistical Learning* (Ch. 3–4, 7), or Khan Academy's Statistics playlist.
+
+3. **Build one portfolio piece** that combines all three:
+   - Pull data with SQL → analyze/model with Python (stats + ML) → serve via FastAPI.
+   - Document the statistical reasoning, not just the code.
+
+**Quick self-check (5 min):**
+- Write a SQL query with a window function (e.g., `ROW_NUMBER() OVER (PARTITION BY ...)`).
+- Explain p-value and confidence interval in plain English.
+- Build a FastAPI endpoint that returns a model prediction.
+
+If you can do these comfortably, you're ready to apply. If not, pick the weakest one and spend 2 weeks on it. Want a specific resource list for any of these three?",200,shadow
+CHAT-018,"I'll help you prepare for the Data Scientist role at Acme AI. Since you haven't uploaded a resume yet, I'll base questions on the job requirements (Python, SQL, Statistics) and the context that this role tests SQL and Python.
+
+Let's start with a technical question:
+
+**Question 1 (SQL - Window Functions & Analytics):**
+""Acme AI has a table `user_events` with columns: `user_id`, `event_timestamp`, `event_type` (values: 'login', 'purchase', 'logout'), and `revenue` (NULL for non-purchase events). Write a query to find the **average revenue per user** for users who had at least 3 login events before their first purchase. Explain your approach and any assumptions.""
+
+Take your time — walk me through your logic, then provide the query.",200,shadow
+CHAT-019,"Based on your resume and the Data Scientist role at Acme AI, here's a focused SQL preparation plan:
+
+## Core SQL Topics to Master
+
+**Essential for Data Science Interviews:**
+- **Joins** (INNER, LEFT, RIGHT, FULL OUTER) - explicitly mentioned in retrieved context
+- **Aggregations & GROUP BY** (COUNT, SUM, AVG, conditional aggregation)
+- **Window Functions** (ROW_NUMBER, RANK, LAG/LEAD, NTILE)
+- **Subqueries & CTEs** (WITH clauses for readable complex queries)
+- **Date/Time manipulation** (critical for analytics)
+- **Data cleaning** (NULL handling, type casting, string functions)
+
+## Practice Strategy
+
+1. **LeetCode SQL** - Start with Easy/Medium: ""Combine Two Tables,"" ""Second Highest Salary,"" ""Department Top Three Salaries""
+2. **Mode Analytics SQL Tutorial** - Free, practical business-focused problems
+3. **StrataScratch** - Real interview questions from companies
+
+## Acme AI Context
+Since they list **Statistics** as required, be ready for:
+- Statistical concepts in SQL (percentiles, correlation basics)
+- A/B testing query design
+- Sampling techniques (TABLESAMPLE, Bernoulli)
+
+## Your Python Advantage
+You can mention how you'd use **SQLAlchemy** or **pandas.read_sql** for production workflows—bridging SQL with your Python/FastAPI skills.
+
+---
+
+**Want me to generate 3-5 practice questions tailored to the Data Scientist role, or walk through a specific join/window function pattern?**",200,shadow
+CHAT-020,"I don't have any information about Acme AI's revenue in the provided context. The retrieved context only mentions the company name and role title.
+
+To find this information, you could:
+- Check Acme AI's website (look for ""About Us,"" ""Investors,"" or ""News"" sections)
+- Search for funding announcements on Crunchbase, PitchBook, or TechCrunch
+- Look up their filings if they're a public company
+- Ask about financial stability/growth during an interview if you progress to that stage
+
+Is there something specific about the Data Scientist role or company culture I can help you with based on the available information?",200,shadow

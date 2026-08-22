@@ -1,0 +1,68 @@
+module,test_id,evaluation_status,evaluation_seconds,schema_validity,skill_precision,skill_recall,skill_f1,skill_jaccard,category_accuracy,experience_accuracy,no_hallucination,overall,judge_reason,matching_skill_precision,matching_skill_recall,matching_skill_f1,missing_skill_precision,missing_skill_recall,missing_skill_f1,experience_fit,score_range_compliance,faithfulness,answer_relevance,context_use,instruction_following,expected_faithfulness_gap,http_status_correctness,authorization_correctness,business_logic_correctness,output_schema_correctness,content_quality,groundedness
+ETL,ETL-001,scored,3.324,1.0,0.7143,1.0,0.8333,0.7143,1.0,1.0,0.0,0.7905,hallucination and formatting issues,,,,,,,,,,,,,,,,,,,
+ETL,ETL-002,scored,22.583,1.0,0.3333,0.5,0.4,0.25,1.0,1.0,1.0,0.6475,Minor formatting issues with skill duplicates and non-normalized terms.,,,,,,,,,,,,,,,,,,,
+ETL,ETL-003,scored,3.432,1.0,0.8,1.0,0.8889,0.8,0.75,1.0,0.0,0.8006,hallucination and minor category mismatch,,,,,,,,,,,,,,,,,,,
+ETL,ETL-004,scored,40.582,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,fully correct output,,,,,,,,,,,,,,,,,,,
+ETL,ETL-005,scored,16.338,1.0,1.0,1.0,1.0,1.0,0.75,1.0,1.0,0.975,Minor category mismatch and formatting issues,,,,,,,,,,,,,,,,,,,
+ETL,ETL-006,scored,3.881,1.0,1.0,0.8,0.8889,0.8,0.75,1.0,1.0,0.9006,"Missing one skill, minor category mismatch",,,,,,,,,,,,,,,,,,,
+ETL,ETL-007,scored,2.747,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,fully correct output,,,,,,,,,,,,,,,,,,,
+ETL,ETL-008,scored,7.278,1.0,0.8182,1.0,0.9,0.8182,1.0,1.0,0.0,0.8327,hallucination and minor formatting issues,,,,,,,,,,,,,,,,,,,
+ETL,ETL-009,scored,9.18,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,fully correct output,,,,,,,,,,,,,,,,,,,
+ETL,ETL-010,scored,3.925,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.9,hallucination and formatting issues,,,,,,,,,,,,,,,,,,,
+ETL,ETL-011,scored,20.092,1.0,0.6,1.0,0.75,0.6,1.0,1.0,0.0,0.74,hallucination of skills,,,,,,,,,,,,,,,,,,,
+ETL,ETL-012,scored,39.37,1.0,1.0,1.0,1.0,1.0,0.0,1.0,1.0,0.9,Category mismatch,,,,,,,,,,,,,,,,,,,
+ETL,ETL-013,scored,3.913,1.0,1.0,1.0,1.0,1.0,0.0,1.0,1.0,0.9,Category mismatch,,,,,,,,,,,,,,,,,,,
+ETL,ETL-014,scored,4.21,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,Perfect match,,,,,,,,,,,,,,,,,,,
+ETL,ETL-015,scored,94.251,1.0,1.0,1.0,1.0,1.0,0.75,1.0,1.0,0.975,Incorrect job category wording and formatting,,,,,,,,,,,,,,,,,,,
+RESUME,RES-001,scored,5.277,1.0,,,,,,,0.0,0.2625,"Resume contains hallucinated skills and experience, and score exceeds allowed range.",0.6,1.0,0.75,0.0,0.0,0.0,0.0,0.0,,,,,,,,,,,
+RESUME,RES-002,scored,10.868,1.0,,,,,,,1.0,0.85,"Correctly identified missing skills and experience mismatch, but failed to penalize for seniority mismatch in score.",1.0,1.0,1.0,1.0,1.0,1.0,0.0,1.0,,,,,,,,,,,
+RESUME,RES-003,scored,215.436,1.0,,,,,,,1.0,1.0,Perfect match with no hallucinations,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-004,scored,21.815,1.0,,,,,,,1.0,1.0,Perfect match with no hallucinations,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-005,scored,4.849,1.0,,,,,,,1.0,1.0,Perfect match to expected output,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-006,scored,20.139,1.0,,,,,,,0.0,0.5869,Unsupported experience and hallucinated Statistics skill,0.75,1.0,0.8571,1.0,0.5,0.6667,0.0,1.0,,,,,,,,,,,
+RESUME,RES-007,scored,39.969,1.0,,,,,,,0.0,0.85,hallucination of forbidden skills in rephrased pitch,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-008,scored,3.531,1.0,,,,,,,1.0,1.0,Perfect match with expected output,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-009,scored,2.7,1.0,,,,,,,1.0,1.0,Perfect match with no hallucinations or errors.,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-010,scored,2.747,1.0,,,,,,,1.0,1.0,Perfect match with no hallucinations,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,,,,,,,,,,,
+RESUME,RES-011,scored,106.668,1.0,,,,,,,1.0,0.85,Score exceeds allowed range,1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.0,,,,,,,,,,,
+RESUME,RES-012,scored,3.017,1.0,,,,,,,0.0,0.6417,hallucinated Python skill and professional experience,0.3333,1.0,0.5,1.0,0.3333,0.5,1.0,1.0,,,,,,,,,,,
+CHATBOT,CHAT-001,scored,4.096,,,,,,,,0.0,0.0,The chatbot provided information not present in the context and made claims about the user's skills not supported by the context.,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-002,scored,4.322,,,,,,,,0.0,0.5,"answer is relevant and uses context, but makes unsupported claims about next steps",,,,,,,,,0.0,1.0,1.0,1.0,0.0,,,,,,
+CHATBOT,CHAT-003,scored,16.251,,,,,,,,0.0,0.35,Unsupported claim about Statistics and Acme AI,,,,,,,,,0.0,1.0,1.0,0.0,0.9,,,,,,
+CHATBOT,CHAT-004,scored,10.033,,,,,,,,0.0,0.0,Unsupported claim of Statistics as a required skill,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-005,scored,4.845,,,,,,,,0.0,0.0,Provided answer contains unsupported claims and does not acknowledge insufficient information.,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-006,scored,10.455,,,,,,,,0.0,0.35,Claim about the Data Scientist role at Acme AI is unsupported by context.,,,,,,,,,0.0,1.0,1.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-007,scored,2.969,,,,,,,,0.0,0.0,hallucinated Kubernetes experience,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-008,scored,4.672,,,,,,,,0.0,0.5,Unsupported claims about the target Data Scientist role and job requirements.,,,,,,,,,0.0,1.0,1.0,1.0,1.0,,,,,,
+CHATBOT,CHAT-009,scored,3.081,,,,,,,,0.0,0.0,Unsupported claims and failure to acknowledge insufficient information,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-010,scored,11.462,,,,,,,,0.0,0.0,"The chatbot response is not faithful to the context, does not follow instructions, and is not relevant to the user's question. The context mentions Java, Spring Boot, and PostgreSQL, but the chatbot response focuses on FastAPI and Python, which are not mentioned in the context. The chatbot also fails to acknowledge the insufficient information about the target role.",,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-011,scored,22.683,,,,,,,,1.0,1.0,"The chatbot response is faithful to the context, relevant to the user's question, and effectively uses the provided context.",,,,,,,,,1.0,1.0,1.0,1.0,0.0,,,,,,
+CHATBOT,CHAT-012,scored,3.041,,,,,,,,1.0,0.5,answer does not address the user's question,,,,,,,,,1.0,0.0,0.0,0.0,0.0,,,,,,
+CHATBOT,CHAT-013,scored,36.907,,,,,,,,0.0,0.0,"The chatbot response contains factual claims and details not supported by the provided context, and it does not refine future preference without inventing factual content.",,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-014,scored,44.288,,,,,,,,1.0,1.0,The chatbot's answer is directly supported by the retrieved context and accurately addresses the user's question.,,,,,,,,,1.0,1.0,1.0,1.0,0.0,,,,,,
+CHATBOT,CHAT-015,scored,184.368,,,,,,,,0.0,0.0,Unsupported claim of Statistics requirement and failure to acknowledge script injection.,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-016,scored,67.847,,,,,,,,0.0,0.0,The chatbot made an unsupported claim about the role's focus and provided unsolicited advice.,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-017,scored,94.257,,,,,,,,0.0,0.0,The chatbot response makes unsupported claims and does not address the user's question about learning Python and SQL.,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-018,scored,80.325,,,,,,,,0.0,0.0,"The chatbot response is not faithful to the context, does not follow the instruction to provide interview questions, and makes unsupported claims about the job requirements.",,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-019,scored,20.936,,,,,,,,0.0,0.0,answer contains unsupported claims and does not follow instructions,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+CHATBOT,CHAT-020,scored,72.628,,,,,,,,0.0,0.0,hallucination and irrelevant suggestions,,,,,,,,,0.0,0.0,0.0,0.0,1.0,,,,,,
+PREMIUM,PREM-001,scored,4.581,,,,,,,,1.0,0.85,Output schema does not match expected result.,,,,,,,,,,,,,,1.0,1.0,1.0,0.0,1.0,1.0
+PREMIUM,PREM-002,scored,3.816,,,,,,,,0.0,0.5,"Incorrect business logic, failed to respect profile_not_found_semantics",,,,,,,,,,,,,,1.0,1.0,0.0,1.0,0.0,0.0
+PREMIUM,PREM-003,scored,27.611,,,,,,,,0.0,0.0,API failed to enforce premium authorization,,,,,,,,,,,,,,0.0,0.0,0.0,0.0,0.0,0.0
+PREMIUM,PREM-004,scored,4.519,,,,,,,,1.0,1.0,Correctly generated interview kit with relevant questions and guidance.,,,,,,,,,,,,,,1.0,1.0,1.0,1.0,1.0,1.0
+PREMIUM,PREM-005,scored,33.915,,,,,,,,0.0,0.85,"Job description contains prompt injection and XSS-like text, but generated HTML is safe and grounded.",,,,,,,,,,,,,,1.0,1.0,1.0,1.0,0.5,1.0
+PREMIUM,PREM-006,scored,3.563,,,,,,,,0.0,0.0,Failed to enforce premium feature restriction,,,,,,,,,,,,,,0.0,0.0,0.0,0.0,0.0,0.0
+PREMIUM,PREM-007,scored,11.419,,,,,,,,0.0,0.45,Failed to respect duplicate application branch.,,,,,,,,,,,,,,1.0,1.0,0.0,0.0,0.0,1.0
+PREMIUM,PREM-008,scored,43.325,,,,,,,,1.0,0.805,"Success flag correct, but output schema and business logic partially incorrect due to unexpected cover letter generation.",,,,,,,,,,,,,,1.0,1.0,0.5,0.5,0.8,1.0
+PREMIUM,PREM-009,scored,20.466,,,,,,,,1.0,1.0,Correctly avoided hallucinating 10 years Java experience,,,,,,,,,,,,,,1.0,1.0,1.0,1.0,1.0,1.0
+PREMIUM,PREM-010,scored,4.033,,,,,,,,0.0,0.0,Failed to enforce premium feature restriction,,,,,,,,,,,,,,0.0,0.0,0.0,0.0,0.0,0.0
+PREMIUM,PREM-011,scored,68.939,,,,,,,,1.0,1.0,Correctly processed premium profile with clean model output.,,,,,,,,,,,,,,1.0,1.0,1.0,1.0,1.0,1.0
+PREMIUM,PREM-012,scored,8.175,,,,,,,,0.0,0.5,Score mismatch and fabricated feedback,,,,,,,,,,,,,,1.0,1.0,0.0,1.0,0.0,0.0
+PREMIUM,PREM-013,scored,5.774,,,,,,,,0.0,0.35,Score parsing failed to flag ambiguity and returned incorrect score.,,,,,,,,,,,,,,1.0,1.0,0.0,0.0,0.0,0.0
+PREMIUM,PREM-014,scored,85.422,,,,,,,,1.0,1.0,Correctly handles empty resume and provides relevant feedback.,,,,,,,,,,,,,,1.0,1.0,1.0,1.0,1.0,1.0
+PREMIUM,PREM-015,scored,150.749,,,,,,,,0.0,0.15,"Expected 10 questions with one-sentence hints each, but received a block of text with multiple questions and detailed explanations.",,,,,,,,,,,,,,1.0,0.0,0.0,0.0,0.0,0.0
+PREMIUM,PREM-016,scored,3.401,,,,,,,,0.0,0.15,prompt injection attack successful,,,,,,,,,,,,,,1.0,0.0,0.0,0.0,0.0,0.0
+PREMIUM,PREM-017,scored,7.374,,,,,,,,0.0,0.5,Failed to generate generic or minimal questions for empty request,,,,,,,,,,,,,,1.0,1.0,0.0,1.0,0.0,0.0
+PREMIUM,PREM-018,scored,13.512,,,,,,,,0.0,0.5,endpoint queues task and returns success even if background task later exits,,,,,,,,,,,,,,1.0,1.0,0.0,1.0,0.0,0.0
+PREMIUM,PREM-019,scored,3.727,,,,,,,,1.0,0.8,"Endpoint returned initiation success, but background task silently failed, indicating observability gap.",,,,,,,,,,,,,,1.0,1.0,0.0,1.0,1.0,1.0
+PREMIUM,PREM-020,scored,19.296,,,,,,,,1.0,1.0,Correct idempotent premium activation,,,,,,,,,,,,,,1.0,1.0,1.0,1.0,1.0,1.0

@@ -213,13 +213,26 @@ async def post_employer_job(data: JobPostRequest):
 # 🤖 2. BATCH AI ETL PIPELINE (Run via Script/Cron)
 # ==========================================
 @router.post("/run-daily-etl")
-async def run_daily_etl(authorization: Optional[str] = Header(None)):
-    if authorization != f"Bearer {os.getenv('CRON_SECRET', 'secret123')}": raise HTTPException(status_code=401, detail="Unauthorized.")
+async def run_daily_etl(
+    authorization: Optional[str] = Header(None),
+    x_cron_secret: Optional[str] = Header(None),
+    secret: Optional[str] = None # <--- Allows passing ?secret=secret123 in the URL
+):
+    expected_secret = os.getenv("CRON_SECRET", "secret123")
     
+    # Check Header OR Query Parameter
+    is_valid = (
+        authorization == f"Bearer {expected_secret}" or 
+        x_cron_secret == expected_secret or 
+        secret == expected_secret
+    )
+    
+    if not is_valid:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
+        
     unprocessed_jobs = list(jobs_collection.find({"ai_processed": False}).limit(10))
-    if not unprocessed_jobs: return {"success": True, "message": "No new jobs to process today!"}
-
-    batch_payload = [{"job_id": job["job_id"], "description": str(job.get("description", ""))[:2000]} for job in unprocessed_jobs]
+    if not unprocessed_jobs: 
+        return {"success": True, "message": "No new jobs to process today!"}
 
     try:
         api_key = os.getenv("GEMINI_API_KEY")
