@@ -1,5 +1,6 @@
 import os
 import datetime
+import json
 import resend
 import google.generativeai as genai
 from fastapi import APIRouter, HTTPException, BackgroundTasks
@@ -65,12 +66,16 @@ def generate_and_email_kit(data: PremiumTaskRequest):
         model = get_gemini_model()
         prompt = f"""
         Act as an expert career coach. Create an Interview Preparation Kit for a {data.job_title} at {data.company_name}.
-        Base the advice strictly on this Job Description: {data.job_description}
+        Base the advice STRICTLY on this Job Description: {data.job_description}
         And the candidate's Resume: {data.resume_text}
+        
+        CRITICAL RULE: Do NOT hallucinate facts about the company, the job, or the candidate. Only use provided information.
+        
         Provide:
-        1. Top 3 likely interview questions and how to answer them.
+        1. Top 3 likely interview questions and how to answer them based on the candidate's actual experience.
         2. 2 insightful questions the candidate should ask the interviewer.
-        Format in clean HTML (<h2>, <ul>, <li>, <strong>). No markdown code blocks.
+        
+        Format in clean HTML (<h2>, <ul>, <li>, <strong>, <p>). No markdown code blocks. Just output the HTML.
         """
         response = model.generate_content(prompt)
         html_content = response.text.strip().replace("```html", "").replace("```", "")
@@ -102,8 +107,12 @@ def process_auto_apply(data: AutoApplyRequest):
             return
         model = get_gemini_model()
         
-        prompt = f"""Write a concise, highly tailored cover letter connecting this Resume: {data.resume_text} 
-        to this Job Description: {data.job_description}. Output ONLY the letter text."""
+        prompt = f"""
+        Write a concise, highly tailored cover letter connecting this Resume: {data.resume_text} 
+        to this Job Description: {data.job_description}. 
+        
+        CRITICAL RULE: Output ONLY the letter text. Do NOT invent, assume, or hallucinate any experience, skills, degrees, or metrics that are not explicitly stated in the candidate's Resume.
+        """
         response = model.generate_content(prompt)
         cover_letter = response.text.strip()
 
@@ -169,21 +178,33 @@ async def get_ats_score(data: PremiumTaskRequest):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise HTTPException(status_code=500, detail="API key missing.")
+        
         model = get_gemini_model()
+        
+        # FIXED: Use strict JSON schema instead of brittle "line 1 / line 2" parsing
         prompt = f"""
         Compare this Resume to this Job Description. 
-        Return EXACTLY two lines.
-        Line 1: A number between 0 and 100 representing the ATS match percentage. ONLY the number.
-        Line 2: One short, actionable sentence on how to improve the resume for this role.
+        Return ONLY valid JSON. Do NOT include markdown backticks.
+        Schema required:
+        {{
+            "score": <integer between 0 and 100 representing match percentage>,
+            "feedback": "<one short, actionable sentence on how to improve the resume for this role>"
+        }}
+        
         Resume: {data.resume_text}
         Job: {data.job_description}
         """
         response = model.generate_content(prompt)
-        lines = response.text.strip().split('\n')
-        score = ''.join(filter(str.isdigit, lines[0]))
-        feedback = lines[1] if len(lines) > 1 else "Consider adding more keywords from the job description."
         
-        return {"success": True, "score": int(score) if score else 50, "feedback": feedback}
+        # Safely parse JSON from LLM
+        clean_text = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+        ai_data = json.loads(clean_text)
+        
+        score = int(ai_data.get("score", 50))
+        feedback = ai_data.get("feedback", "Consider adding more keywords from the job description.")
+        
+        return {"success": True, "score": score, "feedback": feedback}
+        
     except Exception as e:
         return {"success": False, "error": f"Failed to analyze ATS score: {str(e)}"}
 
@@ -198,10 +219,12 @@ async def generate_top_technical_questions(data: TechnicalQuestionsRequest):
         
         prompt = f"""
         Act as a Principal Technical Recruiter and Engineering Manager at {data.company_name}. 
-        Based on this Job Description for a {data.job_title} role:
+        Based STRICTLY on this Job Description for a {data.job_title} role:
         {data.job_description}
         
         Generate the TOP 10 most rigorous technical, coding, architecture, and system design interview questions a candidate will face. 
+        CRITICAL RULE: Do NOT invent skills, languages, or tools that are not explicitly mentioned in the Job Description. 
+        
         For each question, provide a 1-sentence hint or expected core competency.
         Format cleanly with numbers 1 to 10.
         """
