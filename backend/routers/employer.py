@@ -159,7 +159,6 @@ async def post_employer_job(data: JobPostRequest):
         unique_job_id = str(uuid.uuid4())
         exp = data.minExperienceRequired or data.experience_level or data.experience or "Not Specified"
         
-        # Save instantly with basic fallback cleaning. AI will format it perfectly during ETL.
         job_doc = {
             "job_id": unique_job_id,
             "title": data.title,
@@ -216,7 +215,7 @@ async def post_employer_job(data: JobPostRequest):
 async def run_daily_etl(
     authorization: Optional[str] = Header(None),
     x_cron_secret: Optional[str] = Header(None),
-    secret: Optional[str] = None # <--- Allows passing ?secret=secret123 in the URL
+    secret: Optional[str] = None # <--- Supports ?secret=secret123 in URL
 ):
     expected_secret = os.getenv("CRON_SECRET", "secret123")
     
@@ -234,6 +233,9 @@ async def run_daily_etl(
     if not unprocessed_jobs: 
         return {"success": True, "message": "No new jobs to process today!"}
 
+    # 🟢 DEFINING BATCH PAYLOAD HERE:
+    batch_payload = [{"job_id": job["job_id"], "description": str(job.get("description", ""))[:2000]} for job in unprocessed_jobs]
+
     try:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key: raise Exception("GEMINI_API_KEY missing from environment.")
@@ -241,7 +243,6 @@ async def run_daily_etl(
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-3.5-flash')
         
-        # ADVANCED PROMPT INJECTED INTO BATCH PIPELINE
         prompt = f"""
         You are an expert HR data extraction and job-description normalization engine processing a batch of jobs.
         Your task is to analyze the provided raw job descriptions (JD) and transform them into a
@@ -292,7 +293,6 @@ async def run_daily_etl(
                 user_skills = [s.strip() for s in (job.get("skills", "")).split(",") if s.strip()]
                 ai_skills = ai_data.get("extracted_skills", [])
                 
-                # Ensure ai_skills is a list (fallback safety)
                 if not isinstance(ai_skills, list):
                     ai_skills = []
                     
@@ -306,14 +306,12 @@ async def run_daily_etl(
                     "ai_processed": True
                 }
                 
-                # Apply Beautiful Markdown
                 if ai_data.get("formatted_description"): update_fields["formattedDescription"] = ai_data["formatted_description"]
                 if job.get("minExperienceRequired", "Not Specified") == "Not Specified" and ai_data.get("inferred_experience"): update_fields["minExperienceRequired"] = ai_data["inferred_experience"]
 
                 jobs_collection.update_one({"_id": job["_id"]}, {"$set": update_fields})
                 job.update(update_fields) 
 
-                # Re-index Vector
                 if qdrant_client:
                     vector = generate_embedding(build_job_text(job))
                     if vector: qdrant_client.upsert(collection_name=COLLECTION_NAME, points=[models.PointStruct(id=str(uuid.uuid5(uuid.NAMESPACE_DNS, str(job["_id"]))), vector=vector, payload={"mongodb_id": str(job["_id"]), "job_id": jid, "title": job["title"], "company_name": job["company_name"], "category": update_fields["category"]})])
