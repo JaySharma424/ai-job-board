@@ -86,7 +86,7 @@ PREDICTION_MODE = os.getenv(
     "shadow",
 ).strip().lower()
 
-NVIDIA_API_KEY = "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"
+NVIDIA_API_KEY = "------------------LEVtIpORvmDokw7UfILpJAr"
 
 NVIDIA_BASE_URL = os.getenv(
     "NVIDIA_BASE_URL",
