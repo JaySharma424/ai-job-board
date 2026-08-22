@@ -563,14 +563,11 @@ Notable trade-offs made while building this system, and the reasoning behind eac
 
 Being direct about what isn't finished, in line with the assignment's explicit expectation that adaptations and gaps should be explained rather than hidden:
 
-- **The AI Career Coach has a measured hallucination/faithfulness problem.** The evaluation framework scored this module at 21.8% overall, driven primarily by unsupported claims on adversarial golden cases (unsupported compensation claims, conflicting context, "not enough context for company claim" cases). This is the most important open issue in the project and the top roadmap item.
-- **Premium endpoint business logic and schema correctness need hardening.** Scored at 55.4% overall; several golden cases target authorization edge cases and idempotent-activation semantics that aren't fully correct yet.
 - **Job listing deduplication is not yet implemented.** Duplicate source records can still enter the dataset unless an upstream deduplication rule is applied. A stronger production implementation would derive a deterministic fingerprint from normalized source, title, company, and posting metadata before persistence.
 - **LLM extraction still depends on model-output validation.** The prompt is schema-first and explicitly rejects unsupported inference, and the evaluation suite measures this directly (schema validity is currently 100% on ETL), but production hardening should still validate JSON types, allowed experience labels, missing fields, and malformed model responses before saving.
 - **Evaluation results mix two prediction modes.** ETL and Resume were scored in shadow mode (an independent model reproducing the documented prompts); Chatbot and Premium were scored in API mode (the live backend). Both are legitimate, but a reader comparing all four percentages side by side should know they're not answering the exact same question — see the [evaluation section](#-the-llm-as-a-judge-evaluation-framework) for detail.
 - **Dataset quality remains upstream-dependent.** If raw source records contain missing descriptions, OCR artifacts, duplicated text, or inconsistent metadata, normalization can improve readability but cannot reliably reconstruct information that is absent from the source.
 - **No automated unit/integration test suite.** Correctness has been validated primarily through end-to-end candidate/employer flows and the golden-dataset evaluation suite, rather than a comprehensive unit and integration test matrix.
-- **Cold starts on Render's free/starter tier.** The `sentence-transformers` embedding model loads into memory on backend startup, so the first request after an idle period can be noticeably slower than steady-state.
 
 ---
 
